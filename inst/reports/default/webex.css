@@ -1,9 +1,15 @@
 :root {
   --incorrect: #983E82;
   --incorrect_alpha: #edaddd;
+  --incorrect_text: #c60800; /* #F92F60; #c60800; #b1258f; #c31498 ; #d900a3 ; #f400b1 */
   --correct: #59935B;
   --correct_alpha: #c0edc2;
+  --correct_text: #00D26A; /* #00D26A;  #30bc35;  #49a34c; #3eae42 ; #30bc35  ; #1fce25 ; #09e411 */
   --highlight: #467AAC;
+  
+  --welldone: "Well done !";
+  --show_answers: "Show Answers";
+  --try_again: "Try Again";
 }
 
 .webex-check {}
@@ -31,9 +37,11 @@
 }
 
 /* styles for webex-solveme */
+
+
 .webex-select, input.webex-solveme,
 .unchecked .webex-radiogroup label.webex-incorrect,
-.unchecked .webex-radiogroup label.webex-correct{
+.unchecked .webex-radiogroup label.webex-correct {
     border: 2px dotted grey;
     background-color: white;
     border-radius: 0.25em;
@@ -57,20 +65,30 @@ input.webex-solveme.webex-correct,
 }
 
 .webex-check_incorrect {
-    border: 2px dotted var(--incorrect);
+    color: var(--incorrect_text);
+    /* border: 2px dotted var(--incorrect); 
     background-color: var(--incorrect_alpha);
     color: black;
     border-radius: 0.25em;
-    font-size: 150%;
+    font-size: 150%; */
 }
 
 .webex-check_all_correct {
-    border: 2px solid var(--correct);
+    color: var(--correct_text);
+    /* border: 2px solid var(--correct);
     background-color: var(--correct_alpha);
     color: black;
     border-radius: 0.25em;
-    font-size: 150%;
+    font-size: 150%; */
 }
+
+.webex-checkbox-empty label.webex-incorrect,
+.webex-checkbox-empty label.webex-correct {
+    /* border: 2px hidden black; */
+   /* background-color: var(--incorrect_alpha); */
+    border-radius: 0.25em;
+}
+
 
 .unchecked .webex-incorrect span::before,
 .unchecked .webex-incorrect + .webex-icon::after,
@@ -84,8 +102,8 @@ input.webex-solveme.webex-correct,
   content: "\274C  ";
 }
 .webex-checkbox label.webex-incorrect{ 
-    border: 2px dotted var(--pink);
-    background-color: #edaddd;
+    border: 2px dotted var(--incorrect);
+    background-color: var(--incorrect_alpha);
     border-radius: 0.25em;
 }
 
@@ -94,41 +112,11 @@ input.webex-solveme.webex-correct,
   content: "\2705  ";
 }
 .webex-checkbox label.webex-correct { 
-    border: 2px solid var(--green);
-    background-color: #c0edc2;
+    border: 2px solid var(--correct);
+    background-color: var(--correct_alpha);
     border-radius: 0.25em;
 }
 
-/*  <<<<<<< HEAD */
-/* .webex-incorrect, */
-/* .webex-checkbox label.webex-incorrect{ */
-/*     border: 2px dotted var(--pink); */
-/*     background-color: #edaddd; */
-/*     border-radius: 0.25em; */
-/* } */
-/*  */
-/* .webex-correct, */
-/* .webex-checkbox label.webex-correct { */
-/*     border: 2px solid var(--green); */
-/*     background-color: #c0edc2; */
-/*     border-radius: 0.25em; */
-/* ======= */
-/* .unchecked .webex-incorrect span::before, */
-/* .unchecked .webex-incorrect + .webex-icon::after, */
-/* .unchecked .webex-correct span::before, */
-/* .unchecked .webex-correct + .webex-icon::after { */
-/*   content: "  "; */
-/* } */
-/*  */
-/* .webex-incorrect span::before, */
-/* .webex-incorrect + .webex-icon::after { */
-/*   content: "\274C  "; */
-/* } */
-/*  */
-/* .webex-correct span::before, */
-/* .webex-correct + .webex-icon::after { */
-/*   content: "\2705  "; */
-/* >>>>>>> upstream/main */
 
 
 
@@ -144,14 +132,46 @@ input.webex-solveme.webex-correct,
     border: 2px solid var(--highlight);
     border-radius: 5px;
 }
-.webex-solution button, .webex-check-button {
-    height: 2em;
+
+.webex-solution button, 
+.webex-check-button, 
+.unchecked .webex-check-button {
+    border: 0px solid rgba(0, 0, 0, 1);
+    border-radius: 3px ; /* 0.5em; */
+    
+    height: fit-content; 
+    padding-bottom: 10px;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-top: 10px;
+
+    margin-top: 5px; 
+    margin-bottom: 5px;
+    margin-right: 10px;
+    margin-left: 10px; 
+
+    background-color: var(--highlight);
+    color: white;
+    
+    /* height: 2em;
     margin-bottom: 0.5em;
     border-radius: 0.5em;
     background-color: var(--highlight);
     color: white;
-    padding: 0 0.5em;
+    padding: 0 0.5em; */
 }
+
+.webex-solution button, 
+.unchecked .webex-check-button {
+    background-color: var(--highlight);
+}
+
+.webex-check-button {
+    background-color: var(--incorrect_text);
+}
+
+
+
 .webex-solution pre.sourceCode {
     border-color: var(--correct);
 }
@@ -178,12 +198,12 @@ input.webex-solveme.webex-correct,
 
 
 .webex-checkbox label {
+  border: 2px hidden ; /* rgba(255, 255, 255, 1); */
   margin-left: 2em;
   text-indent: -1em;
   padding-left: 0.5em;
   font-weight: 400;
   display: block;
-  border: 2px solid rgba(255, 255, 255, 1);
   border-radius: 0.25em;
 }
 

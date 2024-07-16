@@ -10,71 +10,42 @@ update_total_correct = function() {
     var correct = p.getElementsByClassName("webex-correct").length;
     var solvemes = p.getElementsByClassName("webex-solveme").length;
     var radiogroups = p.getElementsByClassName("webex-radiogroup").length;
-    var checkboxes = p.getElementsByClassName("webex-right_answer_multi").length;
     var selects = p.getElementsByClassName("webex-select").length;
-
     var incorrect = p.getElementsByClassName("webex-incorrect").length; 
+    /* var checkboxes = p.getElementsByClassName("webex-right_answer_multi").length; */
+    
+    var checkboxes = p.getElementsByClassName("webex-checkbox");
+    var checkboxes_answers = 0; 
+      for (var j = 0; j < checkboxes.length; j++) {
+     var cblabels = checkboxes[j].getElementsByTagName("label")
+        for (var k = 0; k < cblabels.length; k++) { 
+          if (cblabels[k].getElementsByTagName("input")[0].value == "answer") {
+                checkboxes_answers = checkboxes_answers + 1 ; 
+          }
+        }
+      }
+      
 
-    /* var correct_text = "<span style = 'color:var(--correct)'>correct</span>"; */
-    /* var incorrect_text = "<span style = 'color:var(--incorrect)'>incorrect</span>"; */ 
-
-
-  if (correct == solvemes + radiogroups + checkboxes + selects && incorrect == 0) {
+    if (correct == solvemes + radiogroups + checkboxes_answers + selects && incorrect == 0) {
+    
+    t[i].innerHTML = "<label class = 'webex-check_all_correct'>" + " <span> " + correct + " / " + (solvemes + radiogroups + checkboxes_answers + selects) + 
+    " correct </span> </label>" ;
   
-  t[i].innerHTML = "<label class = 'webex-check_all_correct'>" + " <span> " + correct + " of " + (solvemes + radiogroups + checkboxes + selects) + " correct : well done ! </span> </label>" ;
-
-} else {
-
-  if (incorrect == 0) {
-   
-   t[i].innerHTML = "<label class = 'webex-check_incorrect'>" + " <span> " + correct + " of " + (solvemes + radiogroups + checkboxes + selects) + " correct </span> </label>" ;
-
   } else {
-   t[i].innerHTML = "<label class = 'webex-check_incorrect'>" + " <span> " + correct + " of " + (solvemes + radiogroups + checkboxes + selects) + " correct ; " + incorrect + " incorrect </span> </label>" ; 
-  } 
-}
-
-
- /* All correct answers 
-if (correct == solvemes + radiogroups + checkboxes + selects && incorrect == 0) {
   
-  t[i].innerHTML = "<label class = 'webex-correct'>" + "<b>" + "<span style = 'background-color:var(--correct_alpha)'>" + correct + " of " + (solvemes + radiogroups + checkboxes + selects) + " correct : well done !" + "</span>" + "</b>" + "</label>" ;
-
-} else {
-
-  if (incorrect == 0) {
-   
-     t[i].innerHTML = "<b>" + "<span style = 'background-color:var(--incorrect_alpha)'>" + correct + " of " + (solvemes + radiogroups + checkboxes + selects) + " correct " + "</span>" + "</b>" ;
-
-  } else {
-    t[i].innerHTML = "<b>" + "<span style = 'background-color:var(--incorrect_alpha)'>" + correct + " of " + (solvemes + radiogroups + checkboxes + selects) + " correct " + " ; " + incorrect + " " + " incorrect " + "</span>" + "</b>" ;
-
-  } 
-}
-*/
+    if (incorrect == 0) {
+     
+     t[i].innerHTML = "<label class = 'webex-check_incorrect'>" + " <span> " + correct + " / " + (solvemes + radiogroups + checkboxes_answers + selects) + 
+     " correct </span> </label>" ;
+  
+    } else {
+     t[i].innerHTML = "<label class = 'webex-check_incorrect'>" + " <span> " + correct + " / " + (solvemes + radiogroups + checkboxes_answers + selects) + " correct ; " + incorrect + 
+     " incorrect </span> </label>" ; 
+    } 
+  }
 
 
 
-/* <<<<<<< HEAD */
-/*   if (t = document.getElementById("webex-total_correct")) { */
-/*     var correct = document.getElementsByClassName("webex-correct").length; */
-/*     var solvemes = document.getElementsByClassName("webex-solveme").length; */
-/*     var radiogroups = document.getElementsByClassName("webex-radiogroup").length; */
-/*     var checkboxes = document.getElementsByClassName("webex-checkbox").length; */
-/*     var selects = document.getElementsByClassName("webex-select").length; */
-/*      */
-/*     t.innerHTML = correct + " of " + (solvemes + radiogroups + checkboxes + selects) + " correct"; */
-/* ======= */
-/*   var t = document.getElementsByClassName("webex-total_correct"); */
-/*   for (var i = 0; i < t.length; i++) { */
-/*     p = t[i].parentElement; */
-/*     var correct = p.getElementsByClassName("webex-correct").length; */
-/*     var solvemes = p.getElementsByClassName("webex-solveme").length; */
-/*     var radiogroups = p.getElementsByClassName("webex-radiogroup").length; */
-/*     var selects = p.getElementsByClassName("webex-select").length; */
-/*  */
-/*     t[i].innerHTML = correct + " of " + (solvemes + radiogroups + selects) + " correct"; */
-/* >>>>>>> upstream/main */
   }
 }
 
@@ -94,15 +65,52 @@ b_func = function() {
 check_func = function() {
   console.log("webex: check answers");
 
+    var sh_answers = window.getComputedStyle(document.documentElement).getPropertyValue('--show_answers').replace(/"/g, '');
+
+    var try_again = window.getComputedStyle(document.documentElement).getPropertyValue('--try_again').replace(/"/g, '');
+    
+    var wldone = window.getComputedStyle(document.documentElement).getPropertyValue('--welldone').replace(/"/g, '');
+
+    var correct_text_color = window.getComputedStyle(document.documentElement).getPropertyValue('--correct_text').replace(/"/g, '');
+
   var cl = this.parentElement.classList;
+  var all_correct = this.nextSibling.getElementsByTagName("label")[0].classList;
+  
   if (cl.contains('unchecked')) {
     cl.remove("unchecked");
-    this.innerHTML = "Hide Answers"; /* "Hide Answers" */
+    
+    if ( all_correct.contains('webex-check_all_correct') ) {
+      this.innerHTML = wldone; 
+      this.style.backgroundColor = correct_text_color;
+      this.setAttribute("disabled", true);
+    
+    } else {
+      this.innerHTML = try_again ; 
+      this.style.backgroundColor = "" ; 
+    }
+    
+    /* Disable buttons when answers are submitted */ 
+     inp = this.parentElement.getElementsByTagName("input")
+      for (var i = 0; i < inp.length; i++) { 
+      inp[i].setAttribute("disabled", true);
+      }
+
+
   } else {
     cl.add("unchecked");
-    this.innerHTML = "Show Answers";
+    this.innerHTML = sh_answers ;
+    
+    /* Reenable buttons when Try again is pushed.*/
+    inp = this.parentElement.getElementsByTagName("input")
+      for (var i = 0; i < inp.length; i++) { 
+      inp[i].removeAttribute("disabled");
+      }
   }
+  
 }
+
+
+
 
 /* function for checking solveme answers */
 solveme_func = function(e) {
@@ -193,28 +201,24 @@ radiogroups_func = function(e) {
   update_total_correct();
 }
 
+
+
 /* function for checking checkboxes answers */
 checkboxes_func = function(e) {
   console.log("webex: check checkboxes");
 
   var current_button = document.querySelector('input[name=' + this.id + ']');
   var cl = current_button.parentElement.classList;
-  /*var labels = current_button.parentElement.parentElement.children;
-  labels.style.fontWeight = 'normal';*/
 
-/* add style when checked, remove when unchecked */
+  /* add style when checked, remove when unchecked */
   if (current_button.checked) {
-        if (current_button.value == "answer") {
+         if (current_button.value == "answer") {
       cl.add("webex-correct");
-      cl.add("webex-right_answer_multi");
-    } else {
+       } else {
       cl.add("webex-incorrect");
     }
     
   } else {
-  if (current_button.value == "answer") { 
-    cl.add("webex-right_answer_multi");
-  }
    cl.remove("webex-incorrect");
    cl.remove("webex-correct");
   }
@@ -235,11 +239,15 @@ window.onload = function() {
 
   var check_sections = document.getElementsByClassName("webex-check");
   console.log("check:", check_sections.length);
+  
+  var sh_answers = window.getComputedStyle(document.documentElement).getPropertyValue('--show_answers').replace(/"/g, '');
+
+
   for (var i = 0; i < check_sections.length; i++) {
     check_sections[i].classList.add("unchecked");
 
     let btn = document.createElement("button");
-    btn.innerHTML = "Show Answers";
+    btn.innerHTML = sh_answers ;
     btn.classList.add("webex-check-button");
     btn.onclick = check_func;
     check_sections[i].appendChild(btn);
@@ -290,6 +298,8 @@ window.onload = function() {
   for (var i = 0; i < checkboxes.length; i++) {
     checkboxes[i].onchange = checkboxes_func;
   }
+
+
 
   /* set up selects */
   var selects = document.getElementsByClassName("webex-select");
