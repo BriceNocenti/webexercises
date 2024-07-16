@@ -47,13 +47,29 @@ input.webex-solveme.webex-incorrect,
     color: black;
     border-radius: 0.25em;
 }
-.webex-correct,
+.webex-correct, 
 input.webex-solveme.webex-correct,
 .webex-radiogroup label.webex-correct {
     border: 2px solid var(--correct);
     background-color: var(--correct_alpha);
     color: black;
     border-radius: 0.25em;
+}
+
+.webex-check_incorrect {
+    border: 2px dotted var(--incorrect);
+    background-color: var(--incorrect_alpha);
+    color: black;
+    border-radius: 0.25em;
+    font-size: 150%;
+}
+
+.webex-check_all_correct {
+    border: 2px solid var(--correct);
+    background-color: var(--correct_alpha);
+    color: black;
+    border-radius: 0.25em;
+    font-size: 150%;
 }
 
 .unchecked .webex-incorrect span::before,
@@ -67,7 +83,7 @@ input.webex-solveme.webex-correct,
 .webex-incorrect + .webex-icon::after {
   content: "\274C  ";
 }
-.webex-checkbox label.webex-incorrect{ /* Added */
+.webex-checkbox label.webex-incorrect{ 
     border: 2px dotted var(--pink);
     background-color: #edaddd;
     border-radius: 0.25em;
@@ -77,7 +93,7 @@ input.webex-solveme.webex-correct,
 .webex-correct + .webex-icon::after {
   content: "\2705  ";
 }
-.webex-checkbox label.webex-correct { /* Added */
+.webex-checkbox label.webex-correct { 
     border: 2px solid var(--green);
     background-color: #c0edc2;
     border-radius: 0.25em;

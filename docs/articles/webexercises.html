@@ -465,12 +465,28 @@ check_func = function() {
   var cl = this.parentElement.classList;
   if (cl.contains('unchecked')) {
     cl.remove("unchecked");
-    this.innerHTML = "Hide Answers";
+    this.innerHTML = "Try Again";
   } else {
     cl.add("unchecked");
     this.innerHTML = "Show Answers";
   }
 }
+
+/* check try again */
+/* check_try_again_func = function() {
+  console.log("webex: try-again");
+
+  var cl = this.parentElement.classList;
+  if (cl.contains('unchecked')) {
+    cl.remove("unchecked");
+    this.innerHTML = "Try Again";
+  } else {
+    cl.add("unchecked");
+   this.innerHTML = "Try Again";
+ }
+} */
+
+
 
 /* function for checking solveme answers */
 solveme_func = function(e) {
@@ -582,6 +598,12 @@ window.onload = function() {
     btn.classList.add("webex-check-button");
     btn.onclick = check_func;
     check_sections[i].appendChild(btn);
+
+    /*let btn = document.createElement("button");
+    btn.innerHTML = "Try Again";
+    btn.classList.add("webex-try-again");
+    btn.onclick = check_try_again_func;
+    check_sections[i].appendChild(btn); */
 
     let spn = document.createElement("span");
     spn.classList.add("webex-total_correct");

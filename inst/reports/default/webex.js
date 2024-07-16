@@ -10,10 +10,50 @@ update_total_correct = function() {
     var correct = p.getElementsByClassName("webex-correct").length;
     var solvemes = p.getElementsByClassName("webex-solveme").length;
     var radiogroups = p.getElementsByClassName("webex-radiogroup").length;
-    var checkboxes = p.getElementsByClassName("webex-checkbox").length;
+    var checkboxes = p.getElementsByClassName("webex-right_answer_multi").length;
     var selects = p.getElementsByClassName("webex-select").length;
 
-    t[i].innerHTML = correct + " of " + (solvemes + radiogroups + checkboxes + selects) + " correct";
+    var incorrect = p.getElementsByClassName("webex-incorrect").length; 
+
+    /* var correct_text = "<span style = 'color:var(--correct)'>correct</span>"; */
+    /* var incorrect_text = "<span style = 'color:var(--incorrect)'>incorrect</span>"; */ 
+
+
+  if (correct == solvemes + radiogroups + checkboxes + selects && incorrect == 0) {
+  
+  t[i].innerHTML = "<label class = 'webex-check_all_correct'>" + " <span> " + correct + " of " + (solvemes + radiogroups + checkboxes + selects) + " correct : well done ! </span> </label>" ;
+
+} else {
+
+  if (incorrect == 0) {
+   
+   t[i].innerHTML = "<label class = 'webex-check_incorrect'>" + " <span> " + correct + " of " + (solvemes + radiogroups + checkboxes + selects) + " correct </span> </label>" ;
+
+  } else {
+   t[i].innerHTML = "<label class = 'webex-check_incorrect'>" + " <span> " + correct + " of " + (solvemes + radiogroups + checkboxes + selects) + " correct ; " + incorrect + " incorrect </span> </label>" ; 
+  } 
+}
+
+
+ /* All correct answers 
+if (correct == solvemes + radiogroups + checkboxes + selects && incorrect == 0) {
+  
+  t[i].innerHTML = "<label class = 'webex-correct'>" + "<b>" + "<span style = 'background-color:var(--correct_alpha)'>" + correct + " of " + (solvemes + radiogroups + checkboxes + selects) + " correct : well done !" + "</span>" + "</b>" + "</label>" ;
+
+} else {
+
+  if (incorrect == 0) {
+   
+     t[i].innerHTML = "<b>" + "<span style = 'background-color:var(--incorrect_alpha)'>" + correct + " of " + (solvemes + radiogroups + checkboxes + selects) + " correct " + "</span>" + "</b>" ;
+
+  } else {
+    t[i].innerHTML = "<b>" + "<span style = 'background-color:var(--incorrect_alpha)'>" + correct + " of " + (solvemes + radiogroups + checkboxes + selects) + " correct " + " ; " + incorrect + " " + " incorrect " + "</span>" + "</b>" ;
+
+  } 
+}
+*/
+
+
 
 /* <<<<<<< HEAD */
 /*   if (t = document.getElementById("webex-total_correct")) { */
@@ -57,7 +97,7 @@ check_func = function() {
   var cl = this.parentElement.classList;
   if (cl.contains('unchecked')) {
     cl.remove("unchecked");
-    this.innerHTML = "Hide Answers";
+    this.innerHTML = "Hide Answers"; /* "Hide Answers" */
   } else {
     cl.add("unchecked");
     this.innerHTML = "Show Answers";
@@ -166,12 +206,16 @@ checkboxes_func = function(e) {
   if (current_button.checked) {
         if (current_button.value == "answer") {
       cl.add("webex-correct");
+      cl.add("webex-right_answer_multi");
     } else {
       cl.add("webex-incorrect");
     }
     
   } else {
-     cl.remove("webex-incorrect");
+  if (current_button.value == "answer") { 
+    cl.add("webex-right_answer_multi");
+  }
+   cl.remove("webex-incorrect");
    cl.remove("webex-correct");
   }
 
