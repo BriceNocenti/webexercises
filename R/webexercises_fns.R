@@ -440,3 +440,33 @@ strip_lzero <- function(x) {
 escape_regex <- function(string) {
   gsub("([.|()\\^{}+$*?]|\\[|\\])", "\\\\\\1", string)
 }
+
+
+
+
+
+
+#' Add a textbox
+#'
+#' @param rows Number of rows.
+#' @param cols Height or columns.
+#' @param border_size Size of the border.
+#' @param border_color Color of the border.
+#' @param text Prefilled text (grayed). Default to css global variable --textbox_text. 
+#'
+#' @return Html text.
+#' @export
+textbox <- function(rows = 10, cols = 100,
+                    border_size = 2,  border_color = "#000000",
+                    text = 'var(--textbox_text, "")'
+) {
+  paste0(
+    '<form> <textarea name=', 
+    paste0("text_", paste(sample(LETTERS, 10, T), collapse = "")),
+    ' cols= ', cols,  ' rows= ', rows, 
+    '" style="border: ', border_size, 'px solid ', border_color, ';">',
+    text, 
+    '</textarea>
+<br />
+</form>')
+}
