@@ -1,3 +1,17 @@
+
+#' @keywords internal
+.onLoad <- function(libname, pkgname) {
+ 
+  options("webexercices_textbox_text" = "Answer") 
+  
+  invisible()
+}
+
+
+
+
+
+
 #' Create a fill-in-the-blank question
 #'
 #' @param answer The correct answer (can be a vector if there is more
@@ -452,14 +466,20 @@ escape_regex <- function(string) {
 #' @param cols Height or columns.
 #' @param border_size Size of the border.
 #' @param border_color Color of the border.
-#' @param text Prefilled text (grayed). Default to css global variable --textbox_text. 
+#' @param text Prefilled text. Default to `getOption("webexercices_textbox_text")`. 
 #'
 #' @return Html text.
 #' @export
 textbox <- function(rows = 10, cols = 100,
                     border_size = 2,  border_color = "#000000",
-                    text = 'var(--textbox_text, "")'
+                    text = NULL
 ) {
+  text <- if(length(text) == 0) {
+    getOption("webexercices_textbox_text")
+  } else {
+    text
+  }
+  
   paste0(
     '<form> <textarea name=', 
     paste0("text_", paste(sample(LETTERS, 10, T), collapse = "")),
@@ -470,3 +490,8 @@ textbox <- function(rows = 10, cols = 100,
 <br />
 </form>')
 }
+
+
+
+
+

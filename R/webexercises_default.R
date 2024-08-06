@@ -34,8 +34,8 @@ webexercises_default <- function(css, includes, ...) {
     if (missing(css)) {
       system.file("reports/default/webex.css", package = "webexercises")
     } else {
-      c(css, 
-        system.file("reports/default/webex.css", package = "webexercises")  
+      c(system.file("reports/default/webex.css", package = "webexercises"), 
+        css
       )
     }
 
@@ -68,3 +68,5 @@ setup_hide_knithook <- function() {
 
   invisible()
 }
+
+

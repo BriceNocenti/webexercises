@@ -2,7 +2,7 @@
 % Please edit documentation in R/webexercises_fns.R
 \name{longmcq}
 \alias{longmcq}
-\title{Longer MCQs with Radio Buttons}
+\title{Longer MCQs with Radio Buttons and Checkboxes}
 \usage{
 longmcq(opts)
 }
@@ -12,10 +12,11 @@ element(s) of this vector named 'answer'.}
 }
 \value{
 A character string containing HTML code to create a set of
-  radio buttons.
+  radio buttons (if there is only one answer) or a set of 
+  checkboxes (if there is two answers or more).
 }
 \description{
-Longer MCQs with Radio Buttons
+Longer MCQs with Radio Buttons and Checkboxes
 }
 \details{
 Writes html code that creates a radio button widget, with a

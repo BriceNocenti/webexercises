@@ -4,7 +4,7 @@
 \alias{webexercises_default}
 \title{Create default webexercises document}
 \usage{
-webexercises_default(...)
+webexercises_default(css, includes, ...)
 }
 \arguments{
 \item{...}{Additional function arguments to pass to
