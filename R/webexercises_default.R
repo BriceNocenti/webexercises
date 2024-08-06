@@ -28,8 +28,17 @@
 #' browseURL(sub("\\.Rmd$", ".html", my_rmd))
 #' }
 #' @export
-webexercises_default <- function(...) {
-  css <- system.file("reports/default/webex.css", package = "webexercises")
+webexercises_default <- function(css, includes, ...) {
+  
+  css <- 
+    if (missing(css)) {
+      system.file("reports/default/webex.css", package = "webexercises")
+    } else {
+      c(css, 
+        system.file("reports/default/webex.css", package = "webexercises")  
+      )
+    }
+
   js <- system.file("reports/default/webex.js", package = "webexercises")
 
   setup_hide_knithook()
