@@ -20,9 +20,10 @@ Imports:
     utils,
     grDevices,
     rstudioapi,
-    rmarkdown (>= 2.2)
+    rmarkdown (>= 2.2), 
+    htmltools
 License: CC BY-SA 4.0
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Suggests: 
     testthat,
     bookdown,

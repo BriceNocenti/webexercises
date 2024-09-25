@@ -84,7 +84,8 @@ fitb <- function(answer,
          ifelse(ignore_case, " ignorecase", ""),
          ifelse(regex, " regex", ""),
          "' size='", width,
-         "' data-answer='", answers, "'/>")
+         "' data-answer='", answers, "'/>") |> 
+    htmltools::HTML()
 
   # pdf / other format
   pdf <- paste(rep("_", width), collapse = "")
@@ -92,10 +93,14 @@ fitb <- function(answer,
   # check type of knitting
   out_fmt <- knitr::opts_knit$get("out.format")
   pandoc_to <- knitr::opts_knit$get("rmarkdown.pandoc.to")
-  ifelse((is.null(out_fmt) & is.null(pandoc_to)) ||
+  if((is.null(out_fmt) & is.null(pandoc_to)) || # with ifelse(), html lose "html" class
            isTRUE(out_fmt == "html") ||
-           isTRUE(pandoc_to == "html"),
-         html, pdf)
+           isTRUE(pandoc_to == "html")) {
+    html
+    
+  } else {
+    pdf
+  }
 }
 
 #' Create a multiple-choice question
@@ -125,7 +130,8 @@ mcq <- function(opts) {
   # html format
   options <- sprintf("<option value='%s'>%s</option>", names(opts), opts)
   html <- sprintf("<select class='webex-select'><option value='blank'></option>%s</select>",
-          paste(options, collapse = ""))
+          paste(options, collapse = "")) |> 
+    htmltools::HTML()
 
   # pdf / other format
   pdf_opts <- sprintf("* (%s) %s  ", LETTERS[seq_along(opts)], opts)
@@ -134,10 +140,14 @@ mcq <- function(opts) {
   # check type of knitting
   out_fmt <- knitr::opts_knit$get("out.format")
   pandoc_to <- knitr::opts_knit$get("rmarkdown.pandoc.to")
-  ifelse((is.null(out_fmt) & is.null(pandoc_to)) ||
+  if ((is.null(out_fmt) & is.null(pandoc_to)) || # with ifelse(), html lose "html" class
            isTRUE(out_fmt == "html") ||
-           isTRUE(pandoc_to == "html"),
-         html, pdf)
+           isTRUE(pandoc_to == "html")) {
+    html
+    
+  } else {
+    pdf
+  }
 }
 
 #' Create a true-or-false question
@@ -165,10 +175,14 @@ torf <- function(answer) {
   # check type of knitting
   out_fmt <- knitr::opts_knit$get("out.format")
   pandoc_to <- knitr::opts_knit$get("rmarkdown.pandoc.to")
-  ifelse((is.null(out_fmt) & is.null(pandoc_to)) ||
+  if ((is.null(out_fmt) & is.null(pandoc_to)) ||
            isTRUE(out_fmt == "html") ||
-           isTRUE(pandoc_to == "html"),
-         mcq(opts), "TRUE / FALSE")
+           isTRUE(pandoc_to == "html")) {
+    mcq(opts)
+  } else{
+    "TRUE / FALSE"
+  }
+
 }
 
 
@@ -209,16 +223,17 @@ longmcq <- function (opts) {
     options <- sprintf("<label><input type=\"radio\" autocomplete=\"off\" name=\"%s\" value=\"%s\"></input> <span>%s</span></label>", 
         qname, names(opts), opts2)
     html <- paste0("<div class='webex-radiogroup' id='", qname, 
-        "'>", paste(options, collapse = ""), "</div>\n")
+        "'>", paste(options, collapse = ""), "</div>\n") |> 
+      htmltools::HTML()
     
-    } else { #lenght >= 2
+    } else { #length >= 2
     qname <-
     lapply(opts2,
            function(element) paste0("check_",
                                     paste(sample(LETTERS, 10, TRUE), collapse = "")))
     options <- sprintf("<div class='webex-checkbox' id =\"%s\"><label><input type=\"checkbox\" name=\"%s\" value=\"%s\"> </input><span>%s</span></label> </div>\n", 
        qname, qname, names(opts), opts2)
-    html <- paste0(options, collapse = "")
+    html <- paste0(options, collapse = "") |> htmltools::HTML()
     }
 
 
@@ -229,10 +244,15 @@ longmcq <- function (opts) {
   # check type of knitting
   out_fmt <- knitr::opts_knit$get("out.format")
   pandoc_to <- knitr::opts_knit$get("rmarkdown.pandoc.to")
-  ifelse((is.null(out_fmt) & is.null(pandoc_to)) ||
+  if ( (is.null(out_fmt) & is.null(pandoc_to)) || # with ifelse(), html lose "html" class
            isTRUE(out_fmt == "html") ||
-           isTRUE(pandoc_to == "html"),
-         html, pdf)
+           isTRUE(pandoc_to == "html")) {
+    html
+    
+  } else {
+    pdf
+  }
+
 }
 
 

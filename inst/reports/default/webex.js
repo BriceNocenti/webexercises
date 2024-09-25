@@ -1,5 +1,7 @@
 <script>
 
+
+
 /* update total correct if #webex-total_correct exists */
 update_total_correct = function() {
   console.log("webex: update total_correct");
@@ -309,6 +311,25 @@ window.onload = function() {
   }
 
   update_total_correct();
+  
+  
+  /* NOT WORKING Add copy to clipboard button (from gitbook) */
+  // if (!ClipboardJS.isSupported())
+  
+  //  var copyButton = '<button type="button" class="copy-to-clipboard-button" title="Copy to clipboard" aria  -label//="Copy to clipboard"><i class="fa fa-copy"></i></button>';
+  //  var clipboard;
+  //
+  //  $(copyButton).prependTo("div.sourceCode");
+  //
+  //  clipboard = new ClipboardJS(".copy-to-clipboard-button", {
+  //    text: function(trigger) {
+  //      return trigger.parentNode.textContent;
+  //    }
+  //  });
+  
+  
 }
+
+
 
 </script>
