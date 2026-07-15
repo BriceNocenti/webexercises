@@ -230,6 +230,19 @@ checkboxes_func = function(e) {
 
 window.onload = function() {
   console.log("webex onload");
+  
+  
+ /* RStudio viewer pane open URLs with ?viewer_pane = 1 : use it in css ?
+  var URLparams = new URLSearchParams(window.location.search);
+  const viewer_pane = URLparams.get(`viewer_pane`);
+  if (viewer_pane = "1") {
+      document.style.setProperty('--TOC_width', "20%");
+  } else {
+      document.style.setProperty('--TOC_width', 0);
+  }
+  */
+
+  
   /* set up solution buttons */
   var buttons = document.getElementsByTagName("button");
 
