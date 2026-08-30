@@ -78,13 +78,18 @@ fitb <- function(answer,
   answers <- gsub("\'", "&apos;", answers, fixed = TRUE)
 
   # html format
-  html <- paste0("<input class='webex-solveme",
-         ifelse(ignore_ws, " nospaces", ""),
-         ifelse(!is.null(tol), paste0("' data-tol='", tol, ""), ""),
-         ifelse(ignore_case, " ignorecase", ""),
-         ifelse(regex, " regex", ""),
-         "' size='", width,
-         "' data-answer='", answers, "'/>") |> 
+  # WARNING: build the class list FIRST, then the attributes. `data-tol` used to be opened in the
+  # middle of the class attribute, so `tol` with `ignore_case` or `regex` emitted
+  # `data-tol='0.1 ignorecase'` -- the class silently lost, the flag never read.
+  classes <- paste0("webex-solveme",
+                    if (ignore_ws) " nospaces" else "",
+                    if (ignore_case) " ignorecase" else "",
+                    if (regex) " regex" else "")
+
+  html <- paste0("<input class='", classes, "'",
+                 if (!is.null(tol)) paste0(" data-tol='", tol, "'") else "",
+                 " size='", width,
+                 "' data-answer='", answers, "'/>") |>
     htmltools::HTML()
 
   # pdf / other format
@@ -485,30 +490,35 @@ escape_regex <- function(string) {
 #' @param rows Number of rows.
 #' @param cols Height or columns.
 #' @param border_size Size of the border.
-#' @param border_color Color of the border.
-#' @param text Prefilled text. Default to `getOption("webexercices_textbox_text")`. 
+#' @param border_color Color of the border. Defaults to `currentColor`, the colour of the
+#'   surrounding text, so the box stays visible on a light page and on a dark one.
+#' @param text Prefilled text, which the reader has to delete before writing. Empty by default.
+#' @param placeholder Greyed invitation shown while the box is empty, and gone at the first
+#'   keystroke. Defaults to `getOption("webexercices_textbox_text")`; `""` for none.
 #'
 #' @return Html text.
 #' @export
 textbox <- function(rows = 10, cols = 100,
-                    border_size = 2,  border_color = "#000000",
-                    text = NULL
+                    border_size = 2,  border_color = "currentColor",
+                    text = "",
+                    placeholder = getOption("webexercices_textbox_text")
 ) {
-  text <- if(length(text) == 0) {
-    getOption("webexercices_textbox_text")
-  } else {
-    text
-  }
-  
-  paste0(
-    '<form> <textarea name=', 
-    paste0("text_", paste(sample(LETTERS, 10, T), collapse = "")),
-    ' cols= ', cols,  ' rows= ', rows, 
-    '" style="border: ', border_size, 'px solid ', border_color, ';">',
-    text, 
-    '</textarea>
-<br />
-</form>')
+  # DESIGN: the invitation is a `placeholder` ATTRIBUTE, not content. As content it had to be
+  # deleted before writing, so callers switched it off with `text = ""` -- which amounts to having
+  # no invitation at all. As an attribute it shows greyed and goes at the first keystroke.
+  # WARNING: `currentColor` and not a hex. The box has to be visible on a light page AND on a dark
+  # one, and the one colour that is right in both is the colour of the text around it.
+  ph <- if (length(placeholder) == 1L && !is.na(placeholder)) as.character(placeholder) else ""
+
+  attrs <- paste0(
+    ' name="', paste0("text_", paste(sample(LETTERS, 10, TRUE), collapse = "")), '"',
+    ' cols="', cols, '"',
+    ' rows="', rows, '"',
+    if (nzchar(ph)) paste0(' placeholder="', htmltools::htmlEscape(ph, attribute = TRUE), '"'),
+    ' style="border: ', border_size, 'px solid ', border_color, ';"'
+  )
+
+  paste0("<form> <textarea", attrs, ">", text, "</textarea>\n<br />\n</form>")
 }
 
 

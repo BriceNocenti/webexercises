@@ -1,5 +1,9 @@
-/* PURPOSE: bind the webexercises widgets -- fill-in-the-blank, select, radio, checkbox, the
- *   hidden-solution toggle and the check/try-again cycle -- to the markup the R functions write.
+/* PURPOSE: bind the webexercises widgets -- fill-in-the-blank, select, radio, checkbox, clickable
+ *   table cell, the hidden-solution toggle and the check/try-again cycle -- to the markup the R
+ *   functions write.
+ * KEY CONSTRAINTS: two invariants, each stated where it is enforced --
+ *   - a widget wears webex-correct OR webex-incorrect, never both (see set_answer_state);
+ *   - a widget type counts in the score only if it has a term in `total` (see update_total_correct).
  * ROLE: shipped three ways from this one file: as an HTML DEPENDENCY by the Quarto extension
  *   (_extensions/webexercises), and as an `after_body` include by webexercises_default() and
  *   webexercises_default2(), which wrap it in <script> at render time.
@@ -7,52 +11,48 @@
  *   rmarkdown's `after_body` takes raw HTML; an HTML dependency takes a script FILE, and a wrapped
  *   one would be a syntax error on the first line. R/webexercises_default.R adds it back. */
 
-/* update total correct if #webex-total_correct exists */
+/* update total correct if #webex-total_correct exists
+ * WARNING: `total` below is THE coupling point of this file. A widget type missing from that sum
+ * never enters the score, so its section can never reach "all correct": its button never turns
+ * into "Well done !" and stays on "Try again" whatever the reader does. Adding a widget means
+ * adding its term there -- one line, and there is no other place to touch. The shapes differ on
+ * purpose: a field, a select, a radiogroup and a clickable table each count ONE (the container is
+ * the question), while a checkbox question counts one per EXPECTED answer. */
 update_total_correct = function() {
   console.log("webex: update total_correct");
 
   var t = document.getElementsByClassName("webex-total_correct");
   for (var i = 0; i < t.length; i++) {
-    p = t[i].parentElement;
-    var correct = p.getElementsByClassName("webex-correct").length;
-    var solvemes = p.getElementsByClassName("webex-solveme").length;
+    var p = t[i].parentElement;
+    var correct     = p.getElementsByClassName("webex-correct").length;
+    var incorrect   = p.getElementsByClassName("webex-incorrect").length;
+    var solvemes    = p.getElementsByClassName("webex-solveme").length;
     var radiogroups = p.getElementsByClassName("webex-radiogroup").length;
-    var selects = p.getElementsByClassName("webex-select").length;
-    var incorrect = p.getElementsByClassName("webex-incorrect").length; 
-    /* var checkboxes = p.getElementsByClassName("webex-right_answer_multi").length; */
-    
+    var selects     = p.getElementsByClassName("webex-select").length;
+    var clickcells  = p.getElementsByClassName("webex-clickcell").length;
+
     var checkboxes = p.getElementsByClassName("webex-checkbox");
-    var checkboxes_answers = 0; 
-      for (var j = 0; j < checkboxes.length; j++) {
-     var cblabels = checkboxes[j].getElementsByTagName("label")
-        for (var k = 0; k < cblabels.length; k++) { 
-          if (cblabels[k].getElementsByTagName("input")[0].value == "answer") {
-                checkboxes_answers = checkboxes_answers + 1 ; 
-          }
+    var checkboxes_answers = 0;
+    for (var j = 0; j < checkboxes.length; j++) {
+      var cblabels = checkboxes[j].getElementsByTagName("label");
+      for (var k = 0; k < cblabels.length; k++) {
+        if (cblabels[k].getElementsByTagName("input")[0].value == "answer") {
+          checkboxes_answers = checkboxes_answers + 1;
         }
       }
-      
+    }
 
-    if (correct == solvemes + radiogroups + checkboxes_answers + selects && incorrect == 0) {
-    
-    t[i].innerHTML = "<label class = 'webex-check_all_correct'>" + " <span> " + correct + " / " + (solvemes + radiogroups + checkboxes_answers + selects) + 
-    " correct </span> </label>" ;
-  
-  } else {
-  
-    if (incorrect == 0) {
-     
-     t[i].innerHTML = "<label class = 'webex-check_incorrect'>" + " <span> " + correct + " / " + (solvemes + radiogroups + checkboxes_answers + selects) + 
-     " correct </span> </label>" ;
-  
+    var total = solvemes + radiogroups + selects + clickcells + checkboxes_answers;
+    var score = " <span> " + correct + " / " + total + " correct";
+
+    if (correct == total && incorrect == 0) {
+      t[i].innerHTML = "<label class = 'webex-check_all_correct'>" + score + " </span> </label>";
+    } else if (incorrect == 0) {
+      t[i].innerHTML = "<label class = 'webex-check_incorrect'>" + score + " </span> </label>";
     } else {
-     t[i].innerHTML = "<label class = 'webex-check_incorrect'>" + " <span> " + correct + " / " + (solvemes + radiogroups + checkboxes_answers + selects) + " correct ; " + incorrect + 
-     " incorrect </span> </label>" ; 
-    } 
-  }
-
-
-
+      t[i].innerHTML = "<label class = 'webex-check_incorrect'>" + score + " ; " + incorrect +
+        " incorrect </span> </label>";
+    }
   }
 }
 
@@ -119,6 +119,26 @@ check_func = function() {
 
 
 
+/* WARNING: `webex-correct` and `webex-incorrect` are EXCLUSIVE, and no verdict may leave a widget
+ * wearing both -- update_total_correct() counts the two classes separately, so an answer carrying
+ * both scores as correct AND incorrect at once: its section prints "5 / 6 correct ; 1 incorrect"
+ * and its button stays on "Try again" for good, whatever the reader types. The tolerance and the
+ * regex branches used to do exactly that, adding one class without taking the other back off.
+ * Every verdict in this file now goes through this one function. */
+function set_answer_state(cl, correct) {
+  cl.toggle("webex-correct", correct);
+  cl.toggle("webex-incorrect", !correct);
+}
+
+/* The number a reader typed, or NaN when what they typed is not one. The WHOLE string has to be a
+ * number: a leading-digits parse reads "1/2.41" as 1 and would accept it for any answer near 1,
+ * and that spelling is exactly what a table of odds below 1 displays. A decimal COMMA counts as a
+ * decimal point -- it is what a French keyboard types -- and a trailing % is dropped. */
+function webex_number(x) {
+  var s = String(x).trim().replace(/\s/g, "").replace(",", ".").replace(/%$/, "");
+  return /^[+-]?(\d+\.?\d*|\.\d+)$/.test(s) ? parseFloat(s) : NaN;
+}
+
 /* function for checking solveme answers */
 solveme_func = function(e) {
   console.log("webex: check solveme");
@@ -136,33 +156,27 @@ solveme_func = function(e) {
   if (my_answer == "") {
     cl.remove("webex-correct");
     cl.remove("webex-incorrect");
-  } else if (real_answers.includes(my_answer)) {
-    cl.add("webex-correct");
-    cl.remove("webex-incorrect");
-  } else {
-    cl.add("webex-incorrect");
-    cl.remove("webex-correct");
+    update_total_correct();
+    return;
   }
 
-  // match numeric answers within a specified tolerance
-  if(this.dataset.tol > 0){
-    var tol = JSON.parse(this.dataset.tol);
-    var matches = real_answers.map(x => Math.abs(x - my_answer) < tol)
-    if (matches.reduce((a, b) => a + b, 0) > 0) {
-      cl.add("webex-correct");
-    } else {
-      cl.remove("webex-correct");
-    }
+  var correct = real_answers.includes(my_answer);
+
+  /* within `tol`, a number is right whatever its spelling: "5.20" and "5,2" for "5.2" */
+  var tol = webex_number(this.dataset.tol);
+  if (!correct && tol > 0) {
+    var mine = webex_number(my_answer);
+    correct = !isNaN(mine) && real_answers.some(function(x) {
+      var theirs = webex_number(x);
+      return !isNaN(theirs) && Math.abs(theirs - mine) < tol;
+    });
   }
 
-  // added regex bit
-  if (cl.contains("regex")){
-    answer_regex = RegExp(real_answers.join("|"))
-    if (answer_regex.test(my_answer)) {
-      cl.add("webex-correct");
-    }
+  if (!correct && cl.contains("regex")) {
+    correct = new RegExp(real_answers.join("|")).test(my_answer);
   }
 
+  set_answer_state(cl, correct);
   update_total_correct();
 }
 
@@ -170,15 +184,13 @@ solveme_func = function(e) {
 select_func = function(e) {
   console.log("webex: check select");
 
-  var cl = this.classList
+  var cl = this.classList;
 
-  /* add style */
-  cl.remove("webex-incorrect");
-  cl.remove("webex-correct");
-  if (this.value == "answer") {
-    cl.add("webex-correct");
-  } else if (this.value != "blank") {
-    cl.add("webex-incorrect");
+  if (this.value == "blank") {
+    cl.remove("webex-correct");
+    cl.remove("webex-incorrect");
+  } else {
+    set_answer_state(cl, this.value == "answer");
   }
 
   update_total_correct();
@@ -193,22 +205,15 @@ radiogroups_func = function(e) {
   var labels = checked_button.parentElement.parentElement.children;
 
   /* get rid of styles */
-  for (i = 0; i < labels.length; i++) {
+  for (var i = 0; i < labels.length; i++) {
     labels[i].classList.remove("webex-incorrect");
     labels[i].classList.remove("webex-correct");
   }
 
-  /* add style */
-  if (checked_button.value == "answer") {
-    cl.add("webex-correct");
-  } else {
-    cl.add("webex-incorrect");
-  }
+  set_answer_state(cl, checked_button.value == "answer");
 
   update_total_correct();
 }
-
-
 
 /* function for checking checkboxes answers */
 checkboxes_func = function(e) {
@@ -219,21 +224,36 @@ checkboxes_func = function(e) {
 
   /* add style when checked, remove when unchecked */
   if (current_button.checked) {
-         if (current_button.value == "answer") {
-      cl.add("webex-correct");
-       } else {
-      cl.add("webex-incorrect");
-    }
-    
+    set_answer_state(cl, current_button.value == "answer");
   } else {
-   cl.remove("webex-incorrect");
-   cl.remove("webex-correct");
+    cl.remove("webex-incorrect");
+    cl.remove("webex-correct");
   }
 
   update_total_correct();
 }
 
-window.onload = function() {
+/* function for checking a clicked table cell
+ * The QUESTION is the wrapper (.webex-clickcell), one per table, the way a radiogroup is one per
+ * question; the cells inside it are its options, and only one of them may carry a verdict. */
+clickcell_func = function() {
+  console.log("webex: check clickcell");
+
+  var group = this.closest(".webex-clickcell");
+  if (group === null) return;
+
+  var cells = group.getElementsByClassName("webex-cell");
+  for (var i = 0; i < cells.length; i++) {
+    cells[i].classList.remove("webex-incorrect");
+    cells[i].classList.remove("webex-correct");
+  }
+
+  set_answer_state(this.classList, this.dataset.answer === "1");
+
+  update_total_correct();
+}
+
+window.addEventListener("load", function() {
   console.log("webex onload");
   
   
@@ -328,22 +348,17 @@ window.onload = function() {
     selects[i].insertAdjacentHTML("afterend", " <span class='webex-icon'></span>")
   }
 
+  /* set up clickable table cells */
+  var clickcells = document.getElementsByClassName("webex-cell");
+  for (var i = 0; i < clickcells.length; i++) {
+    clickcells[i].onclick = clickcell_func;
+    /* a span is not a control: the role, the tab stop and the two keys have to be given to it */
+    clickcells[i].setAttribute("role", "button");
+    clickcells[i].setAttribute("tabindex", "0");
+    clickcells[i].onkeydown = function(e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); this.click(); }
+    };
+  }
+
   update_total_correct();
-  
-  
-  /* NOT WORKING Add copy to clipboard button (from gitbook) */
-  // if (!ClipboardJS.isSupported())
-  
-  //  var copyButton = '<button type="button" class="copy-to-clipboard-button" title="Copy to clipboard" aria  -label//="Copy to clipboard"><i class="fa fa-copy"></i></button>';
-  //  var clipboard;
-  //
-  //  $(copyButton).prependTo("div.sourceCode");
-  //
-  //  clipboard = new ClipboardJS(".copy-to-clipboard-button", {
-  //    text: function(trigger) {
-  //      return trigger.parentNode.textContent;
-  //    }
-  //  });
-  
-  
-}
+});

@@ -1,5 +1,21 @@
 # webexercises (development version)
 
+* an answer can no longer be counted correct AND incorrect at once. A `fitb()` answer within `tol`,
+  or matching a `regex`, used to keep the `webex-incorrect` class it had just been given: its
+  `.webex-check` section printed "n / N correct ; 1 incorrect" and its button stayed on "Try again"
+  for good. Every verdict now goes through one `set_answer_state()`.
+* `fitb(tol = )` accepts a decimal comma and a trailing `%`, so the author no longer lists every
+  spelling by hand. The whole string must be a number: `1/2.41` is not read as `1`.
+* `fitb()` builds its class list before its attributes. `tol` combined with `ignore_case` or
+  `regex` used to emit `data-tol='0.1 ignorecase'`, losing the class and the flag.
+* new widget: a clickable table cell (`.webex-clickcell` wrapper, `.webex-cell` options), scored
+  like a radiogroup -- one answer per wrapper.
+* `textbox()` borders itself with `currentColor` and quotes its attributes, so it is visible on a
+  dark page as well as a light one.
+* the script binds with `addEventListener` instead of assigning `window.onload`, which any other
+  script on the page could overwrite.
+* `tests/testthat/test-fitb.R` was commented out in full; it now runs.
+
 # webexercises 1.1.0
 
 * quarto support (`create_quarto_doc()` and `add_to_quarto()`)

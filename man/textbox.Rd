@@ -8,7 +8,7 @@ textbox(
   rows = 10,
   cols = 100,
   border_size = 2,
-  border_color = "#000000",
+  border_color = "currentColor",
   text = NULL
 )
 }
@@ -19,7 +19,8 @@ textbox(
 
 \item{border_size}{Size of the border.}
 
-\item{border_color}{Color of the border.}
+\item{border_color}{Color of the border. Defaults to `currentColor`, the colour of the
+surrounding text, so the box stays visible on a light page and on a dark one.}
 
 \item{text}{Prefilled text. Default to `getOption("webexercices_textbox_text")`.}
 }

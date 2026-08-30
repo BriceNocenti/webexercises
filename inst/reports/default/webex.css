@@ -251,6 +251,46 @@ textarea                     { border-radius: 5px; }
 .webex-check > .webex-solution > p  { font-style: italic; }
 .unchecked > .webex-solution        { display: none; }
 
+/* -- a clickable cell of a table -----------------------------------------------------------------
+ * The QUESTION is the wrapper (.webex-clickcell), one per table, the way a radiogroup is one per
+ * question; the cells inside are its options. No colour of its own: the two verdicts are the tints
+ * every other widget already wears, so a right answer looks the same wherever it is met.
+ *
+ * WARNING: the cell keeps ITS OWN background -- the colour tabxplor gave it for the size of its
+ * deviation, which is the whole thing the reader is being asked to see. Hence `color: inherit` and
+ * `background-color: transparent` against the generic .webex-correct rules above, which paint a
+ * field, and hence the !important pair below, which beats the `.unchecked` repaint (also
+ * !important) that would otherwise fill the cell with the page's field colour.               */
+.webex-clickcell .webex-cell {
+  display:       block;
+  cursor:        pointer;
+  border:        2px solid transparent;
+  border-radius: 0.25em;
+}
+.webex-clickcell .webex-cell:hover,
+.webex-clickcell .webex-cell:focus-visible {
+  border-color: var(--highlight, #467AAC);
+  outline:      none;
+}
+/* solid for right, dotted for wrong: the verdict is legible without relying on hue */
+.webex-clickcell .webex-cell.webex-correct {
+  border:           2px solid var(--correct);
+  background-color: transparent;
+  color:            inherit;
+}
+.webex-clickcell .webex-cell.webex-incorrect {
+  border:           2px dotted var(--incorrect);
+  background-color: transparent;
+  color:            inherit;
+}
+.unchecked .webex-clickcell .webex-cell.webex-correct,
+.unchecked .webex-clickcell .webex-cell.webex-incorrect {
+  border:           2px solid var(--highlight, #467AAC) !important;
+  background-color: transparent !important;
+}
+/* once the section is checked the choice is frozen, as the fields are */
+.webex-check:not(.unchecked) .webex-cell { pointer-events: none; }
+
 /* -- the answer-button strings, by document language ---------------------------------------------
  * They are CONTENT, read by webex.js off the computed style, so a translation is a cascade and not
  * a fork of the script. Quarto and rmarkdown both put `lang:` on <html>, so :lang() is all it takes
