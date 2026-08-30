@@ -38,3 +38,36 @@ devtools::install_github("psyteachr/webexercises")
 
 
 <a rel="license" href="https://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
+
+## This fork
+
+`BriceNocenti/webexercises` is a thin fork of `PsyTeachR/webexercises`. It adds:
+
+- **a Quarto extension.** Install it once, name the filter, and `webex.css` / `webex.js` arrive as
+  an HTML dependency on every HTML page -- a document, a chapter of a book, a page of a website,
+  all the same, with no `css:` line and no relative path to resolve:
+
+  ``` bash
+  quarto add BriceNocenti/webexercises
+  ```
+
+  ``` yaml
+  filters: [webexercises]
+  ```
+
+  `add_to_quarto()` does both steps from R, and `create_quarto_doc()` starts a document that way.
+
+- **`webexercises_default2()`**, an R Markdown format built on `bookdown::html_document2()` so that
+  cross-references work. Retained for documents that have not moved to Quarto.
+- **`textbox()`**, a free-text answer box, and checkbox `longmcq()` for questions with several
+  right answers.
+- **the submit / try-again cycle**: a `::: {.webex-check}` section grows a button that grades every
+  widget inside it, tells the reader how many are right, and can be reset. Its three strings follow
+  the document's `lang:` -- `:root:lang(fr)` gives the French ones, with no stylesheet to override.
+- **a dark page.** Four colour literals became variables keeping the literal as their fallback, and
+  the fills are derived from the stylesheet's own semantic colours with `color-mix()`, so the
+  widgets follow a light/dark switch without a theme and with no new colour.
+
+⚠ **`webex.js` is plain JavaScript.** The `<script>` wrapper an `after_body` include needs is added
+at render time by `webex_after_body()`; an HTML dependency takes the file itself.
+

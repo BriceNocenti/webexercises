@@ -15,3 +15,5 @@
 ^webexercises\.Rproj$
 ^CRAN-SUBMISSION$
 ^05-Test
+^_extensions$
+^dev$

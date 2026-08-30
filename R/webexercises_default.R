@@ -40,7 +40,7 @@ webexercises_default <- function(css, ...) { # includes
       )
     }
 
-  js <- system.file("reports/default/webex.js", package = "webexercises")
+  js <- webex_after_body()
 
   setup_hide_knithook()
 
@@ -93,11 +93,7 @@ webexercises_default2 <- function(css, ...) { # includes
   )
   css <- if (missing(css)) { base_css } else { c(base_css, css) }
   
-  js <- c(system.file("reports/default/webex.js", package = "webexercises") #, 
-          #system.file("resources/gitbook/js/clipboard.min.js", package = "bookdown") #,
-          #system.file("resources/gitbook/js/plugin-clipboard.js", package = "bookdown") 
-          #"D:/Statistiques/Formations/M1S1-Tableaux croisés équipés sur R/resources/plugin-clipboard.js"
-  )
+  js <- webex_after_body()
   
   
   
@@ -130,4 +126,14 @@ setup_hide_knithook <- function() {
 }
 
 
-
+# The `after_body` include the two rmarkdown formats need. inst/reports/default/webex.js is PLAIN
+# JAVASCRIPT, because that is what an HTML dependency takes and the Quarto extension ships it that
+# way; rmarkdown's `includes(after_body =)` takes raw HTML, so the <script> wrapper is added here,
+# once, into a file that lives as long as the session.
+webex_after_body <- function() {
+  js  <- readLines(system.file("reports/default/webex.js", package = "webexercises"),
+                   warn = FALSE, encoding = "UTF-8")
+  out <- tempfile("webex-", fileext = ".html")
+  writeLines(c("<script>", js, "</script>"), out, useBytes = TRUE)
+  out
+}

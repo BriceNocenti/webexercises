@@ -1,10 +1,9 @@
 ---
 title: "Webexercises"
-format: 
+filters: [webexercises]
+format:
   html:
-    css: [webex.css]
-    include-after-body: [webex.js]
-    embed-resources: true 
+    embed-resources: true
 ---
 
 ```{r setup, include = FALSE}

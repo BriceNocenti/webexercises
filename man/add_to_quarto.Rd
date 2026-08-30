@@ -2,28 +2,21 @@
 % Please edit documentation in R/add_to_quarto.R
 \name{add_to_quarto}
 \alias{add_to_quarto}
-\title{Add webexercises helper files to quarto}
+\title{Add webexercises to a Quarto project}
 \usage{
-add_to_quarto(
-  quarto_dir = ".",
-  include_dir = "include",
-  output_format = c("html")
-)
+add_to_quarto(quarto_dir = ".", demo = FALSE)
 }
 \arguments{
-\item{quarto_dir}{The base directory for your quarto project}
+\item{quarto_dir}{The base directory of your Quarto project.}
 
-\item{include_dir}{The directory where you want to put the css and
-js files (defaults to "include")}
-
-\item{output_format}{The format you want to add
-webexercises to (only html for now)}
+\item{demo}{Also copy `webexercises.qmd`, a page showing every widget.}
 }
 \value{
 No return value, called for side effects.
 }
 \description{
-Adds the necessary helper files to an existing quarto project and
-edits the _quarto.yml file accordingly. A demo file for webexercises
-will be added and optionally rendered.
+Installs the Quarto extension into `quarto_dir/_extensions/` and adds `filters: [webexercises]`
+to its `_quarto.yml`. That one line is the whole of the wiring: the filter puts `webex.css` and
+`webex.js` on every HTML page as an HTML dependency, so nothing has to name a path, and the same
+setup is correct for a document, a book and a website alike.
 }

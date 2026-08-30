@@ -1,0 +1,25 @@
+# PURPOSE: the Quarto face of webexercises -- one filter that puts webex.css and webex.js on the
+#   page, so a project writes `filters: [webexercises]` and nothing else.
+# ROLE: hand-written. webex.css and webex.js beside it are COPIES of inst/reports/default/, kept in
+#   step by dev/sync_extension.R and asserted by tests/testthat/test-extension.R.
+#
+# WHY A FILTER AND NOT A FORMAT. A format would have to be NAMED by the document
+# (`format: webexercises-html`), which makes the exercises and the page theme compete for the same
+# key -- a document can name only one custom html format. A filter composes: any html format, a
+# document, a book or a website, all get the assets the same way, and the theme stays somebody
+# else's business. It also means no `css:` and no `include-after-body:` in the consumer's YAML, and
+# so no relative path that a nested project would resolve differently.
+#
+# WARNING: `contributes: filters:` at the TOP LEVEL is what a filter-only extension declares.
+#   Nested under `formats: common:` -- the shape a FORMAT extension uses to bundle a filter -- the
+#   file validates as contributing nothing, and `quarto add` refuses it outright.
+#   A filter runs for every output format; the assets are added only for html, by the filter's own
+#   quarto.doc.is_format() guard, because an HTML dependency handed to the latex writer is an error
+#   rather than a no-op.
+title: webexercises
+author: Dale Barr, Lisa DeBruine, Brice Nocenti
+version: 1.1.0
+quarto-required: ">=1.5.0"
+contributes:
+  filters:
+    - webexercises.lua

@@ -1,95 +1,47 @@
-#' Add webexercises helper files to quarto
+#' Add webexercises to a Quarto project
 #'
-#' Adds the necessary helper files to an existing quarto project and
-#' edits the _quarto.yml file accordingly. A demo file for webexercises
-#' will be added and optionally rendered.
+#' Installs the Quarto extension into `quarto_dir/_extensions/` and adds `filters: [webexercises]`
+#' to its `_quarto.yml`. That one line is the whole of the wiring: the filter puts `webex.css` and
+#' `webex.js` on every HTML page as an HTML dependency, so nothing has to name a path, and the same
+#' setup is correct for a document, a book and a website alike.
 #'
-#' @param quarto_dir The base directory for your quarto project
-#' @param include_dir The directory where you want to put the css and
-#'   js files (defaults to "include")
-#' @param output_format The format you want to add
-#'   webexercises to (only html for now)
+#' @param quarto_dir The base directory of your Quarto project.
+#' @param demo Also copy `webexercises.qmd`, a page showing every widget.
 #'
 #' @return No return value, called for side effects.
 #' @export
-#'
-add_to_quarto <- function(quarto_dir = ".",
-                          include_dir = "include",
-                          output_format = c("html")) {
-  # check inputs
+add_to_quarto <- function(quarto_dir = ".", demo = FALSE) {
   if (quarto_dir == "") quarto_dir <- "."
-  if (include_dir == "") include_dir <- "."
-  output_format <- match.arg(output_format)
+  src <- system.file("_extensions/webexercises", package = "webexercises")
+  if (!nzchar(src))
+    stop("webexercises: the Quarto extension is missing from the installed package.", call. = FALSE)
 
-  # get helper files
-  css <- system.file("reports/default/webex.css", package = "webexercises")
-  js <- system.file("reports/default/webex.js", package = "webexercises")
-  demo <- system.file("reports/default/webexercises.qmd", package = "webexercises")
-
-  # make sure include and script directories exist
-  incdir <- file.path(quarto_dir, include_dir)
-  dir.create(path = incdir, showWarnings = FALSE, recursive = TRUE)
-
-  # add or update helper files
-  file.copy(css, incdir, overwrite = TRUE)
-  file.copy(js, incdir, overwrite = TRUE)
-  file.copy(demo, quarto_dir, overwrite = TRUE)
-  message("webex.css, webex.js, and webexercises.qmd updated")
-
-  # update or create _quarto.yml
-  css_path <- file.path(include_dir, "webex.css")
-  js_path <- file.path(include_dir, "webex.js")
-  quarto_defaults <- list(
-    "html" = list(
-      "css" = css_path,
-      "include-after-body" = js_path
-    )
-  )
+  dest <- file.path(quarto_dir, "_extensions", "webexercises")
+  dir.create(dest, showWarnings = FALSE, recursive = TRUE)
+  file.copy(list.files(src, full.names = TRUE), dest, overwrite = TRUE)
+  message("extension installed: ", dest)
 
   quarto_file <- file.path(quarto_dir, "_quarto.yml")
-  if (!file.exists(quarto_file)) {
-    # add new format with reasonable defaults
-    yml <- list()
-    yml[[output_format]] <- quarto_defaults[[output_format]]
-  } else {
-    # keep default yml
-    yml <- yaml::read_yaml(quarto_file)
-    if ( !is.list(yml$format) || !"format" %in% names(yml)) {
-      yml$format <- list()
-    }
+  yml <- if (file.exists(quarto_file)) yaml::read_yaml(quarto_file) else list()
+  # as.list() is load-bearing: a length-1 character vector writes as `filters: webexercises`, and
+  # Quarto's schema wants a sequence there -- it refuses the project outright, naming `filters`.
+  yml$filters <- as.list(union(unlist(yml$filters), "webexercises"))
+  yaml::write_yaml(yml, quarto_file, handlers = list(
+    logical = function(x) structure(ifelse(x, "true", "false"), class = "verbatim")))
+  message(quarto_file, ": filters: [webexercises]")
 
-    if (!output_format %in% names(yml$format)) {
-      # append output_format
-      yml$format[[output_format]] <- quarto_defaults[[output_format]]
-    }
+  if (demo) {
+    file.copy(system.file("reports/default/webexercises.qmd", package = "webexercises"),
+              quarto_dir, overwrite = TRUE)
+    message("demo copied: ", file.path(quarto_dir, "webexercises.qmd"))
   }
 
-  # get previous values
-  old_css <- yml$format[[output_format]]$css
-  old_js <- yml$format[[output_format]]$`include-after-body`
-
-  # merge with new values
-  yml$format[[output_format]]$css <- union(old_css, css_path)
-  yml$format[[output_format]]$`include-after-body` <- union(old_js, js_path)
-
-  # write to _quarto.yml
-  # custom handler to stop converting boolean values to yes and no
-  yaml::write_yaml(yml, quarto_file, handlers = list(
-    logical = function(x) {
-      result <- ifelse(x, "true", "false")
-      class(result) <- "verbatim"
-      return(result)
-    }
-  ))
-  message(quarto_file, " updated")
-
-  # update .Rprofile
   rprofile <- file.path(quarto_dir, ".Rprofile")
-
   load_txt <- "# load webexercises before each chapter
 # needs to check namespace to not bork github actions
 if (requireNamespace('webexercises', quietly = TRUE)) library(webexercises)"
-  write(load_txt, rprofile, append = TRUE)
+  if (!file.exists(rprofile) || !any(grepl("webexercises", readLines(rprofile, warn = FALSE))))
+    write(load_txt, rprofile, append = TRUE)
 
   invisible(NULL)
 }

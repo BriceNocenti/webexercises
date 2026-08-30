@@ -1,47 +1,29 @@
 tmpdir <- tempdir()
 setwd(tmpdir)
 
-test_that("untitled doc", {
+test_that("a new document carries the extension, not a pair of copied assets", {
   path <- create_quarto_doc(open = FALSE)
-  on.exit(unlink("Untitled", recursive = TRUE)) # clean up
+  on.exit(unlink("Untitled", recursive = TRUE))
 
-  expected <- file.path(normalizePath(tmpdir), "Untitled", "Untitled.qmd")
-  css <- file.path(normalizePath(tmpdir), "Untitled", "webex.css")
-  js <- file.path(normalizePath(tmpdir), "Untitled", "webex.js")
-
-  #expect_equal(path, expected)
-  expect_true(file.exists(expected))
   expect_true(file.exists(path))
-  expect_true(file.exists(css))
-  expect_true(file.exists(js))
-
-  skip_on_cran() # not all CRAN installations have pandoc
-  if (requireNamespace("quarto", quietly = TRUE)) {
-    # render
-    quarto::quarto_render(path, quiet = TRUE)
-    html <- file.path(normalizePath(tmpdir), "Untitled", "Untitled.html")
-    expect_true(file.exists(html))
-  }
+  expect_equal(basename(path), "Untitled.qmd")
+  expect_true(file.exists(file.path(dirname(path), "_extensions", "webexercises", "webex.js")))
+  expect_equal(unlist(yaml::read_yaml(file.path(dirname(path), "_quarto.yml"))$filters), "webexercises")
 })
 
-test_that("titled doc", {
-  path <- create_quarto_doc("MyBook", open = FALSE)
-  on.exit(unlink("MyBook", recursive = TRUE)) # clean up
+test_that("it renders, and the assets arrive as one dependency", {
+  skip_on_cran()
+  skip_if_not(nzchar(Sys.which("quarto")), "quarto is not on the PATH")
+  path <- create_quarto_doc("MyDoc", open = FALSE)
+  on.exit(unlink("MyDoc", recursive = TRUE))
 
-  expected <- file.path(normalizePath(tmpdir), "MyBook", "MyBook.qmd")
-
-  expect_true(file.exists(expected))
-  expect_true(file.exists(path))
-})
-
-test_that("pdf", {
-  skip("requires pandoc and human inspection")
-  path <- create_quarto_doc("MyBook", open = FALSE)
-  on.exit(unlink("MyBook", recursive = TRUE)) # clean up
-
-  quarto::quarto_render(input = path, output_format = "html")
-  browseURL("MyBook/MyBook.html") # check format
-
-  quarto::quarto_render(input = path, output_format = "pdf")
-  browseURL("MyBook/MyBook.pdf") # check format
+  quarto::quarto_render(path, quiet = TRUE)
+  html <- sub("[.]qmd$", ".html", path)
+  expect_true(file.exists(html))
+  txt <- paste(readLines(html, warn = FALSE), collapse = "\n")
+  expect_true(grepl("webex-solveme", txt, fixed = TRUE))        # a widget reached the page
+  # ... and so did its assets. The demo is `embed-resources: true`, so they are INLINE and the
+  # dependency's folder name never appears -- these two strings are what actually has to be there.
+  expect_true(grepl("update_total_correct", txt, fixed = TRUE))  # webex.js
+  expect_true(grepl("--incorrect_alpha", txt, fixed = TRUE))     # webex.css
 })

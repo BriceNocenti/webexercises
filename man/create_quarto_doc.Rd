@@ -2,18 +2,19 @@
 % Please edit documentation in R/quarto.R
 \name{create_quarto_doc}
 \alias{create_quarto_doc}
-\title{Create a quarto document with webexercise}
+\title{Create a Quarto document with webexercises}
 \usage{
 create_quarto_doc(name = "Untitled", open = interactive())
 }
 \arguments{
-\item{name}{Name of the new document}
+\item{name}{Name of the new document (and of the directory it goes in).}
 
-\item{open}{Whether to open the document in RStudio}
+\item{open}{Whether to open the document in RStudio / Positron.}
 }
 \value{
-The file path to the document
+The file path to the document, invisibly.
 }
 \description{
-Creates a new directory with the file name and copies in a demo qmd file and the necessary helper files.
+Makes a directory, puts a demo `.qmd` in it, installs the Quarto extension and writes the one
+line of `_quarto.yml` that turns it on.
 }

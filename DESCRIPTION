@@ -23,7 +23,6 @@ Imports:
     rmarkdown (>= 2.2), 
     htmltools
 License: CC BY-SA 4.0
-RoxygenNote: 7.3.2
 Suggests: 
     testthat,
     bookdown,
@@ -31,3 +30,4 @@ Suggests:
     xfun
 Encoding: UTF-8
 VignetteBuilder: knitr
+Config/roxygen2/version: 8.0.0
