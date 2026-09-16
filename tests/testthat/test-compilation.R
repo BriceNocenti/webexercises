@@ -27,7 +27,7 @@ test_that("minimal compile", {
   
   # check for hide button
   click_me <- grep("click me", rendered_text)
-  expect_equal(rendered_text[click_me-1], "<button>")
+  expect_equal(rendered_text[click_me-1], "<button type=\"button\" aria-expanded=\"false\">")
   expect_equal(rendered_text[click_me-2], "<div class=\"webex-solution\">")
   
   ## cleanup

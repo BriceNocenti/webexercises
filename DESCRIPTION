@@ -27,6 +27,7 @@ Suggests:
     testthat,
     bookdown,
     quarto,
+    withr,
     xfun
 Encoding: UTF-8
 VignetteBuilder: knitr

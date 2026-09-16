@@ -6,7 +6,7 @@ test_that("every attribute is quoted and the box borders itself with currentColo
   html <- textbox(rows = 3, cols = 40, placeholder = "")
   expect_match(html, ' cols="40"', fixed = TRUE)
   expect_match(html, ' rows="3"', fixed = TRUE)
-  expect_match(html, ' name="text_[A-Z]{10}"')
+  expect_match(html, ' name="text_[0-9]+"')
   expect_match(html, "border: 2px solid currentColor;", fixed = TRUE)
   # no stray quote: every `="` opened is closed before the next attribute
   expect_length(gregexpr('"', html)[[1]], 8L)

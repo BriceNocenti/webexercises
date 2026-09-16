@@ -16,10 +16,21 @@
 #   A filter runs for every output format; the assets are added only for html, by the filter's own
 #   quarto.doc.is_format() guard, because an HTML dependency handed to the latex writer is an error
 #   rather than a no-op.
+#
+# WHY `at: pre-ast`, and why nothing later works. Quarto turns `#exr-` and `.solution` divs into
+# CUSTOM AST NODES (a theorem, a proof) during its normalize pass, which runs before every other
+# entry point. From `post-ast` onward they are no longer Divs and a Div handler never sees them --
+# measured: `.correction` and `.encadre` were rewritten, `#exr-` and `.solution` came out as
+# Quarto's own "theorem exercise" and "proof solution". `pre-ast` is the only point where the
+# author's own markup is still there. Quarto then normalizes the `#exr-` div this filter emits and
+# numbers it "Exercice 1.2 (titre)" as usual.
+# One entry point for the whole file: quarto.doc.add_html_dependency() only appends a line to a
+# side-channel file, so it does not care when it is called.
 title: webexercises
 author: Dale Barr, Lisa DeBruine, Brice Nocenti
-version: 1.1.0
+version: 1.2.0
 quarto-required: ">=1.5.0"
 contributes:
   filters:
-    - webexercises.lua
+    - path: webexercises.lua
+      at: pre-ast

@@ -1,10 +1,31 @@
 
-#' @keywords internal
-.onLoad <- function(libname, pkgname) {
- 
-  options("webexercices_textbox_text" = "Answer") 
-  
-  invisible()
+# A widget's identifier: `radio_1`, `check_2`, `text_3`, in order of creation.
+#
+# DESIGN: a counter, not `sample(LETTERS, 10)`. Three reasons, in order of severity. sample() spends
+#   ten values of R's GLOBAL RNG per widget, so a question written between two chunks shifts every
+#   draw that follows -- `random_table_from_tab()` and any set.seed() among them, silently. A fresh
+#   identity at every render also makes a page non-reproducible, and it is what made remembering an
+#   answer impossible.
+# WARNING: the counter resets when the file being knitted changes, so identifiers are per DOCUMENT
+#   and do not depend on how many documents one R session has already rendered. Without that,
+#   rendering a séance alone and rendering it inside a project give different pages.
+# WARNING: the identifier lands in `document.querySelector('input[name=' + id + ']')` UNQUOTED
+#   (webex.js), so it must stay a valid CSS identifier: a letter, then letters, digits, - and _.
+#   It is NOT the key webex.js remembers an answer under -- that one is derived from what the
+#   question says, precisely so that inserting a question does not shift the answers after it.
+.webex <- new.env(parent = emptyenv())
+.webex$n <- 0L
+.webex$doc <- NA_character_
+
+webex_id <- function(prefix) {
+  doc <- tryCatch(knitr::current_input(), error = function(e) NULL)
+  doc <- if (is.null(doc)) NA_character_ else as.character(doc)
+  if (!identical(doc, .webex$doc)) {
+    .webex$doc <- doc
+    .webex$n   <- 0L
+  }
+  .webex$n <- .webex$n + 1L
+  paste0(prefix, "_", .webex$n)
 }
 
 
@@ -218,13 +239,20 @@ torf <- function(answer) {
 #' @export
 longmcq <- function (opts) {
     ix <- which(names(opts) == "answer")
-    opts2 <- gsub("'", "&apos;", opts, fixed = TRUE)
+    # WARNING: `&` FIRST, or the entities written just below are escaped a second time and the
+    # reader sees "&amp;lt;". Only the apostrophe was escaped here for years, so an option holding
+    # a `<` or a `&` -- "moins de 5 %", "R & Python" -- reached the page as broken markup. The Lua
+    # filter that renders a `- [x]` list escapes the same three, so the two paths agree.
+    opts2 <- gsub("&", "&amp;", opts, fixed = TRUE)
+    opts2 <- gsub("<", "&lt;", opts2, fixed = TRUE)
+    opts2 <- gsub(">", "&gt;", opts2, fixed = TRUE)
+    opts2 <- gsub("'", "&apos;", opts2, fixed = TRUE)
     
    if (length(ix) == 0) {
         stop("The question has no correct answer")
     
     } else if (length(ix) == 1) {
-    qname <- paste0("radio_", paste(sample(LETTERS, 10, T), collapse = ""))
+    qname <- webex_id("radio")
     options <- sprintf("<label><input type=\"radio\" autocomplete=\"off\" name=\"%s\" value=\"%s\"></input> <span>%s</span></label>", 
         qname, names(opts), opts2)
     html <- paste0("<div class='webex-radiogroup' id='", qname, 
@@ -232,10 +260,7 @@ longmcq <- function (opts) {
       htmltools::HTML()
     
     } else { #length >= 2
-    qname <-
-    lapply(opts2,
-           function(element) paste0("check_",
-                                    paste(sample(LETTERS, 10, TRUE), collapse = "")))
+    qname <- lapply(opts2, function(element) webex_id("check"))
     options <- sprintf("<div class='webex-checkbox' id =\"%s\"><label><input type=\"checkbox\" name=\"%s\" value=\"%s\"> </input><span>%s</span></label> </div>\n", 
        qname, qname, names(opts), opts2)
     html <- paste0(options, collapse = "") |> htmltools::HTML()
@@ -287,7 +312,11 @@ hide <- function(button_text = "Solution") {
   rmd <- !is.null(getOption("knitr.in.progress"))
 
   if (rmd) {
-    paste0("\n<div class='webex-solution'><button>", button_text, "</button>\n")
+    # WARNING: this HTML must match make_solution() in webexercises.lua, word for word --
+    # `type` because a solution may sit in the <form> textbox() writes, and `aria-expanded`
+    # because a folded solution is a clipped block that nothing else declares as folded.
+    paste0("\n<div class='webex-solution'><button type=\"button\" aria-expanded=\"false\">",
+           button_text, "</button>\n")
   } else {
     paste0("\n::: {.callout-note collapse='true'}\n## ", button_text, "\n\n")
   }
@@ -317,92 +346,6 @@ unhide <- function() {
   } else {
     "\n:::\n\n"
   }
-}
-
-#' Change webexercises widget style
-#'
-#' @param incorrect The colour of the widgets when the answer is incorrect (defaults to pink #983E82).
-#'
-#' @param correct The colour of the widgets when the correct answer
-#'   not filled in (defaults to green #59935B).
-#'
-#' @param highlight The colour of the borders around hidden blocks and
-#'   checked sections (defaults to blue #467AAC).
-#'
-#' @return A character string containing HTML code to change the CSS
-#'   style values for widgets.
-#'
-#' @details Call this function in an RMarkdown document to
-#'   change the feedback colours using R colour names (see `colours()`)
-#'   or any valid CSS colour specification (e.g., red, rgb(255,0,0),
-#'   hsl(0, 100%, 50%) or #FF0000).
-#'
-#' If you want more control over the widget styles, please edit the
-#'   webex.css file directly.
-#'
-#' @examples
-#' style_widgets("goldenrod", "purple")
-#' @export
-style_widgets <- function(incorrect = "#983E82",
-                          correct = "#59935B",
-                          highlight = "#467AAC") {
-  # default if not R colour or hex
-  i_border <- incorrect
-  i_bg <- incorrect
-  c_border <- correct
-  c_bg <- correct
-  h_border <- highlight
-
-  if (highlight %in% grDevices::colours()) {
-    hrgb <- grDevices::col2rgb(highlight, alpha = FALSE)
-    h_border <- paste0("rgb(", paste(hrgb, collapse = ", "), ")")
-  }
-
-  if (incorrect %in% grDevices::colours()) {
-    irgb <- grDevices::col2rgb(incorrect, alpha = FALSE)
-    i_border <- paste0("rgb(", paste(irgb, collapse = ", "), ")")
-    i_bg <- paste0("rgba(", paste(irgb, collapse = ", "), ", 0.25)")
-  } else if (substr(incorrect, 1, 1) == "#") {
-    d_bg <- paste0(incorrect, "DD")
-  }
-
-  if (correct %in% grDevices::colours()) {
-    crgb <- grDevices::col2rgb(correct, alpha = FALSE)
-    c_border <- paste0("rgb(", paste(crgb, collapse = ", "), ")")
-    c_bg <- paste0("rgba(", paste(crgb, collapse = ", "), ", 0.25)")
-  } else if (substr(correct, 1, 1) == "#") {
-    c_bg <- paste0(correct, "DD")
-  }
-
-  style <- paste0(
-    "\n<style>\n",
-    ":root {\n",
-    "    --incorrect: ", i_border, ";\n",
-    "    --incorrect_alpha: ", i_bg, ";\n",
-    "    --correct: ", c_border, ";\n",
-    "    --correct_alpha: ", c_bg, ";\n",
-    "    --highlight: ", h_border, ";\n",
-    "}\n",
-    "  .webex-incorrect, input.webex-solveme.webex-incorrect,\n",
-    "  .webex-radiogroup label.webex-incorrect {\n",
-    "    border: 2px dotted var(--incorrect);\n",
-    "    background-color: var(--incorrect_alpha);\n",
-    "  }\n",
-    "  .webex-correct, input.webex-solveme.webex-correct,\n",
-    "  .webex-radiogroup label.webex-correct {\n",
-    "    border: 2px dotted var(--correct);\n",
-    "    background-color: var(--correct_alpha);\n",
-    "  }\n",
-    "  .webex-box, .webex-solution.open {\n",
-    "    border: 2px solid var(--highlight);n",
-    "  }\n",
-    "  .webex-solution button, .webex-check-button {\n",
-    "    background-color: var(--highlight);\n",
-    "  }\n",
-    "</style>\n\n"
-  )
-
-  cat(style)
 }
 
 #' Display total correct
@@ -511,7 +454,7 @@ textbox <- function(rows = 10, cols = 100,
   ph <- if (length(placeholder) == 1L && !is.na(placeholder)) as.character(placeholder) else ""
 
   attrs <- paste0(
-    ' name="', paste0("text_", paste(sample(LETTERS, 10, TRUE), collapse = "")), '"',
+    ' name="', webex_id("text"), '"',
     ' cols="', cols, '"',
     ' rows="', rows, '"',
     if (nzchar(ph)) paste0(' placeholder="', htmltools::htmlEscape(ph, attribute = TRUE), '"'),

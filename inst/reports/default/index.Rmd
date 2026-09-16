@@ -21,7 +21,6 @@ knitr::write_bib(c(
 
 ```{r, echo = FALSE, results='asis'}
 # Uncomment to change widget colours:
-#style_widgets(incorrect = "goldenrod", correct = "purple", highlight = "firebrick")
 ```
 
 # Webexercises {-}

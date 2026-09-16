@@ -1,65 +1,166 @@
+/* THE FOUR VERDICT COLOURS.
+ * Each is stated as an OKLCH coordinate first and a hex second: the coordinate is the decision, the
+ * hex is what sRGB can show of it. The LIGHT half is upstream's, kept as it is -- it has been read
+ * on white for years -- with one exception, noted on its line. The DARK half below is one RUNG:
+ * hue and role unchanged, lightness moved to L 0.68-0.70 where the colour can be seen on a dark
+ * ground, chroma at the sRGB ceiling there.
+ * WARNING: do NOT lighten a dark value by mixing it with white. That is what `--incorrect_text` used
+ *   to do (`color-mix(#c60800 55%, white)`), and mixing towards white DROPS THE CHROMA -- 0.211 to
+ *   0.131 here -- so the result reads as a washed-out pink rather than as a red. A rung is a change
+ *   of lightness at constant hue; the chroma follows the gamut, never the mix.                    */
 :root {
-  --incorrect: #983E82;
-  --incorrect_alpha: #edaddd;
-  --incorrect_text: #c60800; /* #F92F60; #c60800; #b1258f; #c31498 ; #d900a3 ; #f400b1 */
-  --correct: #59935B;
-  --correct_alpha: #c0edc2;
-  --correct_text: #00D26A; /* #00D26A;  #30bc35;  #49a34c; #3eae42 ; #30bc35  ; #1fce25 ; #09e411 */
-  
+  --incorrect:       #983E82;  /* oklch 0.509 0.146 338 -- the border of a wrong field */
+  --incorrect_alpha: #edaddd;  /* its fill, mixed for white */
+  --incorrect_text:  #c60800;  /* oklch 0.521 0.211  30 -- the retry button, the wrong count */
+  --correct:         #59935B;  /* oklch 0.608 0.103 145 */
+  --correct_alpha:   #c0edc2;
+  --correct_text:    #007E3D;  /* oklch 0.520 0.138 152 -- THE exception: #00D26A was Lc 38 on
+                                  white, so "Well done !" was barely legible in LIGHT mode */
+  --webex-field-bg:  #FFFFFF;
+  --webex-box-bg:    rgba(127, 127, 127, 0.05);
+  --webex-raised-bg: rgba(127, 127, 127, 0.07);  /* one level up, laid OVER the box's own grey */
+
   --welldone: "Well done !";
   --show_answers: "Show Answers";
   --try_again: "Try Again";
+
+  --webex-reset: "⚠︎ Reset my answers";
+  --webex-reset-confirm: "⚠︎ Confirm — erase everything";
+
+  --webex-progress: "Exercises completed: ";
+  --webex-cells:    " cells to find";
 }
 
-.webex-check {}
 
+/* The box's ground is a MID GREY over whatever the page is, never a colour of its own -- so it
+ * lifts a light page and lowers a dark one, and works on a ground this file has never seen.
+ * WARNING: the two alphas are not the same number by accident. 5 % reads clearly on white and
+ * almost not at all on a dark ground, where the same distance in lightness costs twice the alpha:
+ * 10 % over #21252b composites to #2A2E33, one OKLCH rung (L 0.30) above the page. */
+/* DESIGN: `--webex-accent` is the ONE colour of a box -- border, title band, part titles -- and it
+ * INHERITS, so a part inside a coloured aside takes the aside's colour with no rule of its own.
+ * This file only defaults it to the exercise colour; txtheme answers `data-couleur` by setting it.
+ * The padding lives in two properties because the title band reads them back, as negative margins,
+ * to reach the border: change the padding here and the band follows. */
 .webex-box {
-  border: 2px solid var(--highlight, #467AAC);
-  padding: 0.5em 0.25em;
+  --webex-accent:     var(--highlight, #467AAC);
+  --webex-radius:     0.5rem;
+  --webex-pad-block:  0.9rem;
+  --webex-pad-inline: 1rem;
+  border: 2px solid var(--webex-accent);
+  padding: var(--webex-pad-block) var(--webex-pad-inline);
   margin: 1em 0;
-  border-radius: .25em;
-  background-color: rgba(127, 127, 127, 0.05);
+  border-radius: var(--webex-radius);
+  background-color: var(--webex-box-bg, rgba(127, 127, 127, 0.05));
 }
+
+/* An aside that names a colour INSIDE a box (the sheet of variables inside an exercise). The same
+ * frame, tighter, kept off the parent's border by the parent's padding so the two never touch.
+ * DESIGN: ELEVATION, the material way. Its ground is a second layer of the same translucent mid
+ *   grey, composited over the box's: one step darker on a light page, one step lighter on a dark
+ *   one, with no colour to choose per mode. Two levels are the practical maximum; a third would
+ *   start to grey the text out of focus. Solutions shown with their dashed frame take the same
+ *   layer. */
+.webex-inset {
+  --webex-pad-block:  0.6rem;
+  --webex-pad-inline: 0.85rem;
+  border: 2px solid var(--webex-accent, #467AAC);
+  border-radius: var(--webex-radius, 0.5rem);
+  padding: var(--webex-pad-block) var(--webex-pad-inline);
+  margin-block: 1em;
+  background-color: var(--webex-raised-bg, rgba(127, 127, 127, 0.07));
+}
+.webex-inset > *:last-child  { margin-block-end: 0; }
+
+/* ================================================================================================
+ * WHICH SECTION DECIDES, when one is nested inside another.
+ *
+ * `unchecked` is a class on a SECTION, and everything that reads it reads it BY DESCENT -- so an
+ * enclosing exercise that had not been submitted kept greying the fields, hiding the counter and
+ * hiding the answer of an inner part that HAD been submitted. Its button appeared to do nothing at
+ * all. That shape is the one the courses write most: one statement, then two or three parts the
+ * reader submits one after the other.
+ *
+ * A CUSTOM PROPERTY INHERITS, so the NEAREST section wins by construction, which no selector can
+ * express. The properties below hold what a widget looks like while its section is OPEN; a section
+ * that has been submitted sets each of them to `initial`, the guaranteed-invalid value, so every
+ * `var(--…, verdict)` that reads them falls through to its own fallback -- the verdict.
+ *
+ * ⚠ THE VALUE TRAVELS IN THE VARIABLE, never as a guard in front of a declaration. It is tempting
+ *   to write `border: var(--open) 2px dotted grey` and let the declaration fall away once `--open`
+ *   is `initial` -- but an invalid `var()` does NOT hand the property back to the previous rule:
+ *   the property is UNSET, i.e. reset to its own initial value. A guard would therefore erase a
+ *   verdict border rather than reveal it, and hide a solution by making a `div` inline.
+ * ⚠ Nothing is declared at `:root`, deliberately: outside any section every `var()` below takes
+ *   its fallback, so a widget that belongs to no checked section simply shows its verdict.       */
+.webex-check.unchecked {
+  --webex-open-style:     dotted;                       /* a field looks the same whatever it holds */
+  --webex-open-ink:       grey;
+  --webex-open-fill:      var(--webex-field-bg, white);
+  --webex-open-glyph:     "";                           /* and carries no tick and no cross */
+  --webex-open-btn:       var(--highlight, #467AAC);
+  --webex-open-cell:      var(--highlight, #467AAC);
+  --webex-open-cell-fill: rgba(127, 127, 127, 0.12);
+  --webex-open-ring:      0 0 0 1px var(--highlight, #467AAC);
+  --webex-open-hide:      none;                         /* the answer is not shown yet */
+}
+.webex-check:not(.unchecked) {
+  --webex-open-style: initial; --webex-open-ink:  initial; --webex-open-fill: initial;
+  --webex-open-glyph: initial; --webex-open-btn:  initial; --webex-open-cell: initial;
+  --webex-open-cell-fill: initial; --webex-open-ring: initial; --webex-open-hide: initial;
+  --webex-frozen: none;                                 /* and the choice can no longer change */
+}
+/* ============================================================================================== */
 
 .webex-total_correct {
   margin-left: 1em;
+  display: var(--webex-open-hide, inline);
 }
 
-.unchecked .webex-total_correct {
-  display: none;
-}
-
-.unchecked .webex-incorrect,
-.unchecked .webex-correct {
-  border: 2px dotted grey !important;
-  background-color: var(--webex-field-bg, white) !important;
+/* -- what a screen reader hears when a section is submitted --------------------------------------
+ * The counter cannot do this job: it is `display: none` while the section is open, and an
+ * unrendered region is never announced. This one is in the page from the start, empty, and
+ * check_func() writes the verdict into it -- so the change is what gets read, once.
+ * Off-screen, never `display: none`: hiding it that way takes it out of the accessibility tree. */
+.webex-say {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }
 
 /* styles for webex-solveme */
 
 
-.webex-select, input.webex-solveme,
-.unchecked .webex-radiogroup label.webex-incorrect,
-.unchecked .webex-radiogroup label.webex-correct {
+.webex-select, input.webex-solveme {
     border: 2px dotted grey;
     background-color: var(--webex-field-bg, white);
     border-radius: 0.25em;
 }
 
+/* WARNING: no `color` here, and that is the fix. These rules used to force
+ * `color: var(--webex-answer-fg, black)`, with `--webex-answer-fg: inherit` declared in the dark
+ * block -- and `inherit` on a custom property that `:root` never declares is the GUARANTEED-INVALID
+ * value, so `var()` fell through to its fallback and every chosen answer went black on a dark page.
+ * The two fills are tints of the page in both modes, so the page's own ink is right in both.
+ * WARNING: BOTH forms of block QCM are named here, and that is the whole gating. A verdict
+ * reaches the page through `--webex-open-style/-ink/-fill`, which an open section empties; a rule
+ * that writes the colours itself paints the answer on the click, before "Soumettre". Checkboxes
+ * had such a rule of their own, and showed their verdict early where radios did not.          */
 .webex-incorrect,
 input.webex-solveme.webex-incorrect,
-.webex-radiogroup label.webex-incorrect {
-    border: 2px dotted var(--incorrect);
-    background-color: var(--incorrect_alpha);
-    color: var(--webex-answer-fg, black);
+.webex-radiogroup label.webex-incorrect,
+.webex-checkbox label.webex-incorrect {
+    border: 2px var(--webex-open-style, dotted) var(--webex-open-ink, var(--incorrect));
+    background-color: var(--webex-open-fill, var(--incorrect_alpha));
     border-radius: 0.25em;
 }
 .webex-correct, 
 input.webex-solveme.webex-correct,
-.webex-radiogroup label.webex-correct {
-    border: 2px solid var(--correct);
-    background-color: var(--correct_alpha);
-    color: var(--webex-answer-fg, black);
+.webex-radiogroup label.webex-correct,
+.webex-checkbox label.webex-correct {
+    border: 2px var(--webex-open-style, solid) var(--webex-open-ink, var(--correct));
+    background-color: var(--webex-open-fill, var(--correct_alpha));
     border-radius: 0.25em;
 }
 
@@ -81,40 +182,48 @@ input.webex-solveme.webex-correct,
     font-size: 150%; */
 }
 
-.webex-checkbox-empty label.webex-incorrect,
-.webex-checkbox-empty label.webex-correct {
-    /* border: 2px hidden black; */
-   /* background-color: var(--incorrect_alpha); */
-    border-radius: 0.25em;
-}
 
 
-.unchecked .webex-incorrect span::before,
-.unchecked .webex-incorrect + .webex-icon::after,
-.unchecked .webex-correct span::before,
-.unchecked .webex-correct + .webex-icon::after {
-  content: "  ";
+/* THE VERDICT MOVES NOTHING -- AND ONLY A BLOCK QCM CARRIES ONE.
+ * An option's tick or cross lives in a box that is ALWAYS there and only ever changes its
+ * `content`. Three declarations make that box immovable, and each answers a jump that was real:
+ *   - `width`, or choosing an option inserted the glyph and pushed its text sideways;
+ *   - `height` with `line-height`, because an inline-block with EMPTY content has no line box at
+ *     all and so no height: the box grew from 0 to 1em when the verdict arrived, and the whole
+ *     line grew with it -- which is what made the check button drop a few millimetres on the very
+ *     click that pressed it;
+ *   - `vertical-align: middle`, because an inline-block's baseline is its own last line's when it
+ *     has content and its bottom margin edge when it has none. Two different alignments for the
+ *     two states is the same jump by another route.
+ * The box is a CENTRING BOX, `inline-flex` rather than `inline-block`: the two gaps around the
+ * glyph are equal by construction -- `width` is the one number that tunes both -- and so are the
+ * two above and below it. Laid out as text the glyph sat on a baseline instead, and a colour emoji
+ * whose descent exceeds its em box then hangs below it, touching the option's bottom border. Flex
+ * centring owes nothing to the emoji font's metrics.
+ * ⚠ The box has to span the WHOLE line, and be aligned to its top, for that centring to mean what
+ *   it says. `vertical-align: middle` puts a box at the baseline plus half an x-height, which is
+ *   NOT the middle of a line whose height is 1.3 -- the box sat low, and the glyph with it.
+ *   `height` therefore restates the option's own `line-height`, four rules below: the two numbers
+ *   are one number, and changing one without the other lowers the tick again.
+ * WARNING: an option that has not been chosen keeps the empty box from the base rule; a chosen one
+ * takes its glyph from the two rules below -- unless its own section is still open, in which case
+ * `--webex-open-glyph` empties it again. A verdict must not show before "Soumettre": it is the
+ * answer.                                                                                        */
+.webex-radiogroup span::before,
+.webex-checkbox span::before {
+  content:         "";
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  width:           1.15em;
+  height:          1.3em;      /* = the `line-height` of .webex-radiogroup / .webex-checkbox */
+  line-height:     1;
+  vertical-align:  top;
 }
 
-.webex-incorrect span::before,
-.webex-incorrect + .webex-icon::after {
-  content: "\274C  ";
-}
-.webex-checkbox label.webex-incorrect{ 
-    border: 2px dotted var(--incorrect);
-    background-color: var(--incorrect_alpha);
-    border-radius: 0.25em;
-}
+.webex-incorrect span::before { content: var(--webex-open-glyph, "\274C"); }
+.webex-correct   span::before { content: var(--webex-open-glyph, "\2705"); }
 
-.webex-correct span::before,
-.webex-correct + .webex-icon::after {
-  content: "\2705  ";
-}
-.webex-checkbox label.webex-correct { 
-    border: 2px solid var(--correct);
-    background-color: var(--correct_alpha);
-    border-radius: 0.25em;
-}
 
 
 
@@ -132,9 +241,8 @@ input.webex-solveme.webex-correct,
     border-radius: 5px;
 }
 
-.webex-solution button, 
-.webex-check-button, 
-.unchecked .webex-check-button {
+.webex-solution > button:first-child, 
+.webex-check-button {
     border: 0px solid rgba(0, 0, 0, 1);
     border-radius: 3px ; /* 0.5em; */
     
@@ -150,23 +258,30 @@ input.webex-solveme.webex-correct,
     margin-left: 10px; 
 
     background-color: var(--highlight, #467AAC);
-    color: white;
-    
-    /* height: 2em;
-    margin-bottom: 0.5em;
-    border-radius: 0.5em;
-    background-color: var(--highlight, #467AAC);
-    color: white;
-    padding: 0 0.5em; */
+    /* The contrast partner of a filled button is THE PAGE: white on a light one, the dark ground on
+     * a dark one. Bootstrap always states it, and the fallback covers a page that has no theme --
+     * so one declaration serves both modes and no `color: white` survives on a dark page. */
+    color: var(--bs-body-bg, #FFFFFF);
+    font-weight: bold;
 }
 
-.webex-solution button, 
-.unchecked .webex-check-button {
+.webex-solution > button:first-child {
     background-color: var(--highlight, #467AAC);
 }
 
+/* The three states of the check button are three fills of the same shape: the accent while the
+ * section is open, the red once it has been submitted with something wrong, the green when it is
+ * all right. WARNING: `webex-done` is a CLASS and not an inline style. webex.js used to write
+ * `this.style.backgroundColor`, which no stylesheet can override and which stayed the light-mode
+ * green after a theme switch. */
 .webex-check-button {
-    background-color: var(--incorrect_text);
+    background-color: var(--webex-open-btn, var(--incorrect_text));
+}
+/* WARNING: LOAD-BEARING, not a colour. `webex-done` is the recorded verdict "every answer in
+ * this section is right", and webex_progress() counts an exercise finished only when every
+ * one of its sections carries it. Removing it would leave the page counting submissions. */
+.webex-check-button.webex-done {
+    background-color: var(--webex-open-btn, var(--correct_text));
 }
 
 
@@ -224,32 +339,169 @@ input.webex-solveme.webex-correct,
  * has to be overridden by every document that uses it is not finished.
  * ============================================================================================== */
 
-/* -- tighter radios, checkboxes and fields ------------------------------------------------------ */
+/* -- tighter radios, checkboxes and fields ------------------------------------------------------
+ * WARNING: `line-height` here is a RATIO and not the 14px it used to be. A block QCM written as a
+ * markdown task list may now carry `code`, bold or maths in an option, and a fixed line box clips
+ * them. The options stay as close to each other as they were.                                   */
+/* ⚠ 1.3 is also the `height` of the verdict box, which centres the tick on the whole line. */
 .webex-radiogroup,
-.webex-checkbox              { line-height: 14px; margin-top: 0; margin-bottom: 0; }
-.webex-radiogroup label      { height: fit-content; padding: 0; margin-top: -4px; margin-bottom: -2px; }
-.webex-solveme               { border: 2px solid rgba(0, 0, 0, 1); border-radius: 5px; }
+.webex-checkbox              { line-height: 1.3; margin-block: 0.7em 0; }
+/* WARNING: the left padding is what keeps the verdict glyph INSIDE the option's frame. The label
+ * hangs its radio outside itself with `text-indent: -1em`, and the glyph sits on that same first
+ * line -- with `padding: 0` it straddled the border, half in and half out of the green rectangle.
+ * The padding pushes the line back in and leaves the small margin the tick needs to breathe; the
+ * radio itself still hangs outside, which is what aligns the options with each other.           */
+.webex-radiogroup label,
+.webex-checkbox label        { padding: 0 0 0 0.75em; }
+.webex-radiogroup label      { height: fit-content; margin-block: 0.1em; }
+.webex-checkbox + .webex-checkbox { margin-block-start: 0.1em; }
+.webex-solveme               { border: 2px solid currentColor; border-radius: 5px; }
 textarea                     { border-radius: 5px; }
+/* textbox() writes `cols="100"`, which is wider than any box: it overflowed the exercise on the
+ * right. The field takes the width of the block it sits in instead, so its left and right edges
+ * stand at the same distance from the frame; the `<br>` textbox() adds after it is a stray line. */
+textarea[name^="text_"] {
+  display:     block;
+  width:       100%;
+  max-width:   100%;
+  box-sizing:  border-box;
+  margin-block: 0.9em 0.3em;
+}
+form > textarea[name^="text_"] + br { display: none; }
+
+/* An inline `mcq()` is a bare <select>: without this it keeps the browser's own typeface and ink,
+ * which on a dark page is the one widget the reader cannot read. */
+.webex-select                { font: inherit; color: inherit; padding: 0 0.15em; }
+
+/* A SUBMITTED ANSWER STAYS LEGIBLE. `disabled` is what freezes a field once the section is checked,
+ * and every browser greys a disabled control -- which would hide the very answer the reader is
+ * being shown a verdict on. `-webkit-text-fill-color` is the half that Safari and iOS obey. */
+.webex-solveme:disabled,
+.webex-select:disabled,
+.webex-check textarea:disabled,
+.webex-check input:disabled {
+  opacity:                1;
+  color:                  inherit;
+  -webkit-text-fill-color: currentColor;
+  cursor:                 default;
+}
+
+/* -- the vertical rhythm of a box, which 1201 hand-written <br> used to carry -------------------
+ * A séance used to space its blocks with `<br>`, one per gap, because nothing else did. The gaps
+ * belong here: a box now sets the rhythm for whatever it contains, and the markdown says only
+ * what a block IS. `:first-child` / `:last-child` are zeroed because the box has its own padding
+ * and would otherwise open twice.                                                               */
+/* Two parts of one exercise are two sibling sections, and the FIRST one ends with its submit
+ * button -- created by the script at `load`, so no stylesheet ever saw it coming. Without this
+ * rule the second part's title sits flush against that button and reads as its caption.
+ * The exercise div is Quarto's `.theorem`, not a `.webex-box`, so the rhythm below never reached
+ * these: they need their own rule. */
+.webex-check + .webex-check  { margin-block-start: 1.8em; }
+
+.webex-box > *               { margin-block: 0.8em; }
+.webex-box > *:first-child   { margin-block-start: 0; }
+.webex-box > *:last-child    { margin-block-end: 0; }
+/* a run of checkbox options is ONE question: they stay tight against each other, and the gap
+ * before the first and after the last comes from the neighbouring paragraph's own margin. */
+.webex-box > .webex-checkbox { margin-block: 0.1em; }
+
+/* -- the title of a box -------------------------------------------------------------------------
+ * `::: encadre` + `###### titre`. It is NOT a heading: the filter turns it into a div, so it never
+ * enters the table of contents.
+ * A PART TITLE -- a titled block nested in a box, without a frame of its own -- is bold text in the
+ * box's colour over a hairline: it divides the box, it does not open a new one. */
+.webex-title {
+  color:          var(--webex-accent, #467AAC);
+  font-weight:    bold;
+  padding-block-end: 0.2em;
+  border-block-end: 1px solid color-mix(in srgb, var(--webex-accent, #467AAC) 40%, transparent);
+  margin-block:   0 0.6em;
+}
+
+/* THE TITLE BAND: the first title of a frame -- a box, an inset, or the numbered name Quarto gives
+ * an exercise -- is painted in the frame's colour, flush with its border.
+ * The negative margins are the frame's own padding, read back from the custom properties; the top
+ * corners are the border's radius less its width, so the band fills the curve with no seam, and the
+ * bottom corners are square because the box goes on below. The ink is the page's ground -- white on
+ * a light page, near-black on a dark one -- which is what "inverse" means whatever the theme.
+ * WARNING: the exercise title is Quarto's span, PREPENDED into the first paragraph of the theorem
+ *   div, which is the box's first child: that path is the whole selector. `display: block` cuts it
+ *   off the statement, and the negative top margin collapses through the empty edges of `p` and
+ *   the div up to the box's padding. txtheme underlines `.exercise .theorem-title` for pages
+ *   without webexercises; this rule is more specific and takes the underline off. */
+.webex-box > .webex-title:first-child,
+.webex-inset > .webex-title:first-child,
+.webex-box > .exercise:first-child > p:first-child > .theorem-title {
+  display:          block;
+  width:            auto;
+  margin:           calc(-1 * var(--webex-pad-block)) calc(-1 * var(--webex-pad-inline)) 0.8em;
+  padding:          0.4em var(--webex-pad-inline);
+  background-color: var(--webex-accent, #467AAC);
+  color:            var(--bs-body-bg, #FFFFFF);
+  font-size:        1rem;
+  font-weight:      bold;
+  line-height:      1.35;
+  text-decoration:  none;
+  border:           0;
+  border-radius:    calc(var(--webex-radius) - 2px) calc(var(--webex-radius) - 2px) 0 0;
+}
+/* WARNING: the band's negative top margin COLLAPSES with the top margin of the paragraph that holds
+ *   it (0.5rem from txtheme): the sum left a strip of the box's ground above the band, 9 px on a
+ *   wide window. The paragraph's own margin is zeroed so the band meets the border. */
+.webex-box > .exercise:first-child > p:first-child { margin-block-start: 0; }
+/* the paragraph Quarto invents to hold only the name (see webex.js, at `load`) keeps no margin of
+ * its own: the band's is the gap. */
+.exercise > p.webex-title-only { margin-block-end: 0; }
+/* WARNING: Quarto wraps the exercise name in `<strong>`, and txtheme paints bold text in the
+ *   emphasis colour -- gold on a dark page, i.e. the band's own colour: the title vanished. */
+.webex-box > .webex-title:first-child *,
+.webex-inset > .webex-title:first-child *,
+.webex-box > .exercise:first-child > p:first-child > .theorem-title * { color: inherit; }
 
 /* -- a solution inside a box, and inside a checked section ---------------------------------------
- * `.webex-box > .webex-solution` is a solution the reader may open at will: no frame of its own,
- * just indented. Inside a `.webex-check` section it is the ANSWER, so it is revealed by the button
- * (its own toggle is hidden), dashed to say it was not there a moment ago, and set in italics.   */
+ * A solution in a `.webex-box` is one the reader may open at will: no frame of its own, just
+ * indented. In a `.webex-check` section it is the ANSWER, so it is revealed by the button (its own
+ * toggle is hidden), dashed to say it was not there a moment ago, and set in italics.
+ *
+ * WARNING: these match by DESCENT, not by direct child, and the difference is load-bearing. Under
+ * `>` a solution one level deeper was never hidden and the answer showed from the start -- which
+ * is what happened to a solution inside a `layout-ncol`, and what forced the filter to hoist
+ * blocks out of the exercise div (at the price of an `&nbsp;` after every title). Descent costs
+ * nothing here: the only frame inside a box is a `.webex-inset`, which is not a `.webex-box`.                    */
 .webex-solution                     { height: 4em; }
 .webex-solution.open                { height: auto; }
-.webex-box > .webex-solution {
+/* WARNING: no left inset on the CONTAINER, margin or padding. A solution's button and the
+ * section's check button are two buttons of the same box, and any indent on one of them reads as
+ * an accident: they share a left edge because both take it from the same `margin-left` in the
+ * button rule, and from nothing else. The 0.5em the text needs to stand clear of the dashed frame
+ * is carried by the blocks themselves, one rule below -- a button is not a block of text.      */
+.webex-box .webex-solution {
   display:          block;
   border:           0;
   background-color: transparent;
-  margin:           10px 30px;
-  padding-top:      0;
-  padding-bottom:   8px;
+  margin:           10px 0;
+  padding:          0 0 8px;
 }
-.webex-box > .webex-solution.open   { border: 2px dashed var(--highlight, #467AAC) !important; }
-.webex-check > .webex-solution      { height: auto; border: 2px dashed var(--highlight, #467AAC); }
-.webex-check > .webex-solution button { display: none; }
-.webex-check > .webex-solution > p  { font-style: italic; }
-.unchecked > .webex-solution        { display: none; }
+.webex-solution > :not(button) { padding-inline-start: 0.5em; }
+.webex-box .webex-solution.open     { border: 2px dashed var(--highlight, #467AAC) !important;
+                                      background-color: var(--webex-raised-bg, rgba(127,127,127,0.07)); }
+.webex-check .webex-solution        { height: auto; border: 2px dashed var(--highlight, #467AAC);
+                                      background-color: var(--webex-raised-bg, rgba(127,127,127,0.07)); }
+.webex-check .webex-solution > button:first-child { display: none; }
+.webex-check .webex-solution > p    { font-style: italic; }
+.webex-box .webex-solution          { display: var(--webex-open-hide, block); }
+
+/* -- `::: correction`: a worked answer that stays openable, even in a checked section ------------
+ * The two tokens are two REGIMES and not two labels. `::: solution` is THE answer, so a section
+ * that can be checked keeps it until the reader has answered. A correction is a piece of code, a
+ * table to reproduce, a paragraph one could have written differently: locking it behind "Soumettre
+ * mes réponses" helps nobody, and it is what most of the corpus's hidden blocks actually are.   */
+.webex-check .webex-solution.webex-unlocked        { height: 4em; border: 0; background-color: transparent; }
+.webex-check .webex-solution.webex-unlocked.open   { height: auto;
+                                                     border: 2px dashed var(--highlight, #467AAC); }
+.webex-check .webex-solution.webex-unlocked > button:first-child { display: revert; }
+.webex-check .webex-solution.webex-unlocked > p    { font-style: normal; }
+.webex-box .webex-solution.webex-unlocked          { display: block; }
 
 /* -- a clickable cell of a table -----------------------------------------------------------------
  * The QUESTION is the wrapper (.webex-clickcell), one per table, the way a radiogroup is one per
@@ -259,37 +511,65 @@ textarea                     { border-radius: 5px; }
  * WARNING: the cell keeps ITS OWN background -- the colour tabxplor gave it for the size of its
  * deviation, which is the whole thing the reader is being asked to see. Hence `color: inherit` and
  * `background-color: transparent` against the generic .webex-correct rules above, which paint a
- * field, and hence the !important pair below, which beats the `.unchecked` repaint (also
- * !important) that would otherwise fill the cell with the page's field colour.               */
+ * field. It out-specifies that rule at (0,3,0) against (0,1,0), with no `!important` on either
+ * side since the OPEN state travels in a variable rather than in a competing rule.
+ * WARNING: the border is 3px in EVERY state, transparent when the cell is untouched. A cell that
+ * gains a border on being clicked would re-flow the table column under the reader's cursor.     */
 .webex-clickcell .webex-cell {
   display:       block;
   cursor:        pointer;
-  border:        2px solid transparent;
+  border:        3px solid transparent;
   border-radius: 0.25em;
 }
-.webex-clickcell .webex-cell:hover,
-.webex-clickcell .webex-cell:focus-visible {
-  border-color: var(--highlight, #467AAC);
-  outline:      none;
-}
+.webex-clickcell .webex-cell:hover { border-color: var(--highlight, #467AAC); }
 /* solid for right, dotted for wrong: the verdict is legible without relying on hue */
 .webex-clickcell .webex-cell.webex-correct {
-  border:           2px solid var(--correct);
-  background-color: transparent;
+  border:           3px solid var(--webex-open-cell, var(--correct));
+  background-color: var(--webex-open-cell-fill, transparent);
+  box-shadow:       var(--webex-open-ring, none);
   color:            inherit;
 }
 .webex-clickcell .webex-cell.webex-incorrect {
-  border:           2px dotted var(--incorrect);
-  background-color: transparent;
+  border:           3px var(--webex-open-style, dotted) var(--webex-open-cell, var(--incorrect));
+  background-color: var(--webex-open-cell-fill, transparent);
+  box-shadow:       var(--webex-open-ring, none);
   color:            inherit;
 }
-.unchecked .webex-clickcell .webex-cell.webex-correct,
-.unchecked .webex-clickcell .webex-cell.webex-incorrect {
-  border:           2px solid var(--highlight, #467AAC) !important;
-  background-color: transparent !important;
+/* THE CHOSEN CELL, before its section is submitted, wears `--webex-open-cell*` above: an accent
+ * border, a ring, and a fill that is a MID GREY at low alpha -- the idiom `.webex-box` already
+ * uses -- rather than the accent. Grey darkens a white page and lightens a dark one by the same
+ * amount, so it stays neutral towards the eight tabxplor tints the cell's own figure is wearing,
+ * which is the thing the question asks the reader to read. Measured on the weakest rung, `.m1` on
+ * white: Lc 44.2 becomes 35.4, still above the spot-readable floor.
+ * Once ITS OWN section is checked the choice is frozen, as the fields are.                     */
+
+/* HOW MANY cells to find, said before the reader starts rather than deduced from "2 / 3 correct"
+ * after the fact. Written by the caller as `data-cells`, and only when there are several: a table
+ * with one right cell is a question whose cardinal is obvious.                                  */
+.webex-clickcell[data-cells]::before {
+  content:     attr(data-cells) var(--webex-cells);
+  display:     block;
+  font-style:  italic;
+  margin-block: 0 0.4em;
 }
-/* once the section is checked the choice is frozen, as the fields are */
-.webex-check:not(.unchecked) .webex-cell { pointer-events: none; }
+.webex-cell { pointer-events: var(--webex-frozen, auto); }
+
+/* -- the keyboard focus ring ---------------------------------------------------------------------
+ * `currentColor` rather than the accent: the ring is then the ink of whatever it sits on, so it
+ * holds in both modes and on the three grounds a widget can meet -- the page, the box, a coloured
+ * table cell. The browser's own ring is blue, and vanishes on the blue-filled check button.
+ * An option's ring is `:focus-within` because the focus lands on the <input>, not on the <label>
+ * that draws it.                                                                                */
+.webex-check-button:focus-visible,
+.webex-solution > button:first-child:focus-visible,
+.webex-solveme:focus-visible,
+.webex-select:focus-visible,
+.webex-clickcell .webex-cell:focus-visible,
+.webex-radiogroup label:focus-within,
+.webex-checkbox label:focus-within {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
 
 /* -- the answer-button strings, by document language ---------------------------------------------
  * They are CONTENT, read by webex.js off the computed style, so a translation is a cascade and not
@@ -299,6 +579,12 @@ textarea                     { border-radius: 5px; }
   --show_answers: "Soumettre mes réponses";
   --try_again:    "Réessayer";
   --welldone:     "Bien joué !";
+
+  --webex-reset:         "⚠︎ Réinitialiser mes réponses";
+  --webex-reset-confirm: "⚠︎ Confirmer — tout effacer";
+
+  --webex-progress: "Exercices terminés : ";
+  --webex-cells:    " cases à trouver";
 }
 .webex-check-button { min-width: 14em; }
 
@@ -306,19 +592,88 @@ textarea                     { border-radius: 5px; }
  * The four hooks tabxplor's tab_css() and txtheme both write against, so a table, an annotation and
  * an answer field on one page can never disagree about which mode they are in.
  *
- * NO NEW COLOUR IS INTRODUCED: a fill on a dark page reads as a TINT OF THE PAGE rather than as a
- * colour of its own, so the two pastels -- which were mixed for white -- are replaced by this
- * stylesheet's OWN semantic hues at 22 % over whatever the page is, and the answer text is left at
- * the page's foreground instead of being forced to black. `--incorrect_text` is the one value that
- * cannot survive as it is (#c60800 on a dark ground is barely legible), and it is lifted from
- * itself rather than replaced.                                                                    */
+ * THE SAME FOUR COLOURS, ONE RUNG HIGHER. Hue and role are unchanged; only the lightness moves, to
+ * where the colour can be seen on a dark ground -- and the chroma follows the gamut at that
+ * lightness rather than being lost to a mix with white. The two field fills stay DERIVED, at 22 %
+ * of their own border colour over whatever the page is, so a fill reads as a tint of the page.
+ * Measured on #21252b: incorrect Lc 41 (was 18 -- a wrong field was all but unmarked), correct 46,
+ * the two texts 41 and 51.
+ * A FIELD IS THE ONE THING THAT DOES NOT FOLLOW THAT RULE. On white it is white on the box's grey,
+ * so it reads as a hole to write in; `transparent` gave a dark page no such hole at all. Black is
+ * the same gesture the other way round -- a field is the page's floor, further from the reader
+ * than the box that holds it -- and it is what an unanswered field, a chosen answer and a text
+ * area all take.                                                                                  */
 html[data-bs-theme="dark"],
 body.quarto-dark,
 [data-theme="dark"],
 html.dark {
-  --webex-field-bg:  transparent;
-  --webex-answer-fg: inherit;
+  --webex-field-bg:  #000000;
+  --webex-box-bg:    rgba(127, 127, 127, 0.1);
+  --webex-raised-bg: rgba(127, 127, 127, 0.09);
+  --incorrect:       #D172B7;  /* oklch 0.680 0.146 338 */
+  --incorrect_text:  #FF7F6E;  /* oklch 0.740 0.159  29 -- Lc 51 on #21252b, the floor for bold
+                                  text. Lc 60 exists only as #FFA192, a salmon whose chroma has
+                                  fallen by 45 %: sRGB holds no redder colour any lighter.    */
+  --correct:         #6EA970;  /* oklch 0.680 0.103 145 */
+  --correct_text:    #00D36B;  /* oklch 0.759 0.201 152 -- Lc 62, above the content-text floor,
+                                  and MORE chroma than one rung lower: green gains on both     */
   --incorrect_alpha: color-mix(in srgb, var(--incorrect) 22%, transparent);
   --correct_alpha:   color-mix(in srgb, var(--correct) 22%, transparent);
-  --incorrect_text:  color-mix(in srgb, #c60800 55%, white);
 }
+
+/* -- the way back to a blank page -----------------------------------------------------------------
+ * Inserted by webex.js, and ONLY where localStorage actually works and the page holds a question --
+ * so it never offers something the browser refuses to do (Safari on file://, private windows).
+ * The button is red because it destroys work: it borrows `--incorrect_text`, which this stylesheet
+ * already states per mode, rather than naming a red of its own. It says nothing else: a button
+ * whose label is "erase my answers" has already told the reader that the answers are kept.       */
+.webex-reset-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4em 1em;
+  margin-block: 0 1.6em;
+  font-size: 0.9em;      /* the sentence beside it is gone, so the button may be read on its own */
+}
+
+.webex-reset-button {
+  border: 2px solid var(--incorrect_text, #c60800);
+  border-radius: 4px;
+  background-color: transparent;
+  color: var(--incorrect_text, #c60800);
+  padding: 0.15em 0.7em;
+  font-size: inherit;
+  font-family: inherit;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.webex-reset-button:hover,
+.webex-reset-button:focus-visible {
+  background-color: color-mix(in srgb, var(--incorrect_text, #c60800) 15%, transparent);
+}
+
+/* armed: the second click erases, so the button stops being discreet -- by fill and by its own
+ * label ("Confirmer -- tout effacer"), never by inverting the ink, which `--webex-field-bg:
+ * transparent` would make invisible on a dark page. */
+.webex-reset-button[data-armed="1"] {
+  background-color: color-mix(in srgb, var(--incorrect_text, #c60800) 25%, transparent);
+}
+
+/* -- how far through the page one is ---------------------------------------------------------------
+ * Inserted by webex.js under the table of contents, and only where there is something to count.
+ * It borrows the border of a box and the type size of the contents column, and NOTHING of the
+ * verdict palette: a count of what is done is a state, not a mark. Nielsen's first heuristic is
+ * the whole of the argument -- a two-thousand-line session is crossable when one knows what is
+ * left -- and a score of the page would be the one thing this stylesheet refuses to be.       */
+.webex-progress {
+  border: 2px solid var(--highlight, #467AAC);
+  border-radius: 0.25em;
+  padding: 0.4em 0.6em;
+  margin-block: 0.9em 0;
+  font-size: 0.875rem;
+  color: var(--highlight, #467AAC);
+  font-weight: bold;
+}
+/* in the header bar, beside the red button, it is a neighbour and not a block of its own */
+.webex-reset-bar > .webex-progress { margin-block: 0; }
